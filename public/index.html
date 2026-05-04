@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Ridera Admin — Firebase Dashboard</title>
+  <meta name="description"
+    content="Ridera Admin Dashboard — crash monitoring, registered users, and device telemetry." />
+  <!-- Google Maps loads its own styles -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ── CRASH SNACKBAR ─────────────────────────────────────────────────── -->
+  <div id="crash-snackbar" class="crash-snackbar" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="snackbar-inner">
+      <div class="snackbar-icon">🚨</div>
+      <div class="snackbar-content">
+        <div class="snackbar-title">New Crash Detected!</div>
+        <div class="snackbar-msg" id="snackbar-msg">A new riding crash event has been recorded.</div>
+      </div>
+      <button class="snackbar-close" id="snackbar-close" aria-label="Dismiss notification">✕</button>
+    </div>
+    <div class="snackbar-progress" id="snackbar-progress"></div>
+  </div>
+
+  <div id="login-screen" class="login-screen" aria-label="Sign in">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" /></div>
+        <div>
+          <div class="login-title">Ridera Admin</div>
+          <div class="login-sub">Sign in to continue</div>
+        </div>
+      </div>
+      <form id="login-form" class="login-form">
+        <label class="login-label">Email</label>
+        <input id="login-email" class="login-input" type="email" autocomplete="username" required />
+        <label class="login-label">Password</label>
+        <input id="login-password" class="login-input" type="password" autocomplete="current-password" required />
+        <p id="login-error" class="login-error hidden" role="alert"></p>
+        <button type="submit" class="login-submit" id="login-submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-shell" class="hidden" aria-hidden="true">
+  <!-- NAV -->
+  <nav>
+    <a class="logo" href="#">
+      <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" /></div> Ridera Admin
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" data-page="devices" onclick="router.go('devices')">🔌 Devices</button>
+      <button class="nav-link" data-page="users" onclick="router.go('users')">👥 Users</button>
+      <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
+    </div>
+    <div class="nav-end">
+      <div class="live-dot"></div>
+      <span class="live-label">Live · <span id="nav-ts">—</span></span>
+      <button class="refresh-btn" onclick="pages[router.current?.page]?.(router.current?.params)">⟳ Refresh</button>
+      <button type="button" class="logout-btn" id="logout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE: DASHBOARD ═══════════════════════════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">🚨 Crash Alert</div>
+      <div class="page-sub">Real-time crash intelligence · ridera-f30a8</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Crashes</div>
+        <div class="stat-num c-orange" id="stat-crashes">—</div>
+        <div class="stat-sub">detected entries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Registered Users</div>
+        <div class="stat-num c-blue" id="stat-users">—</div>
+        <div class="stat-sub">in database</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Devices</div>
+        <div class="stat-num c-green" id="stat-devices">—</div>
+        <div class="stat-sub">connected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Severity</div>
+        <div class="stat-num c-yellow" id="stat-severity">—</div>
+        <div class="stat-sub">highest level</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash Locations</span></div>
+      <div class="card-body np">
+        <div id="crash-map"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">🚨</span><span class="card-title">Crash Entries</span></div>
+      <div class="card-body">
+        <div id="crash-list">
+          <div class="loading">
+            <div class="spinner"></div>Loading…
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: USERS ═══════════════════════════════════════════════════════ -->
+  <div class="page" id="page-users">
+    <div class="page-header">
+      <div class="page-title">👥 Registered Users</div>
+      <div class="page-sub">All users registered in the Ridera database</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-num c-blue" id="stat-users-count">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">With Crash History</div>
+        <div class="stat-num c-red" id="stat-with-crash">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">With Motorcycle</div>
+        <div class="stat-num c-green" id="stat-with-device">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">👥</span><span class="card-title">All Users — click a row to view
+          details</span></div>
+      <div class="card-body np">
+        <div id="users-table-wrap">
+          <div class="loading">
+            <div class="spinner"></div>Loading…
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: USER DETAIL ═════════════════════════════════════════════════ -->
+  <div class="page" id="page-user-detail">
+    <button class="back-btn" onclick="router.go('users')">← Back to Users</button>
+    <div id="user-detail-body">
+      <div class="loading">
+        <div class="spinner"></div>Loading…
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: DEVICES ═════════════════════════════════════════════════════ -->
+  <div class="page" id="page-devices">
+    <div class="page-header">
+      <div class="page-title">🔌 Device Dashboard</div>
+      <div class="page-sub">Live telemetry, GPS & crash data from Ridera devices</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Devices</div>
+        <div class="stat-num c-blue" id="stat-dev-count">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Online</div>
+        <div class="stat-num c-green" id="stat-dev-online">—</div>
+      </div>
+    </div>
+
+    <div id="devices-body">
+      <div class="loading">
+        <div class="spinner"></div>Loading…
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZ0bp_eKfhhT2RhFqdlE54sJqmy2sS2y0&v=weekly"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Ridera Admin — Login</title>
+  <meta name="description" content="Ridera Admin Dashboard Login"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:      #0a0a0f;
+      --card:    #111118;
+      --border:  #1e1e2e;
+      --accent:  #FFEB0A;
+      --accent-soft: #FFEB0A1E;
+      --accent-deep: #a89400;
+      --accent-ink: #141a0a;
+      --text:    #e2e8f0;
+      --muted:   #52526a;
+      --subtle:  #1c1c2a;
+      --red:     #FFEB0A;
+      --green:   #22c55e;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Subtle radial glow only ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, var(--accent-soft) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+      animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .card-inner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 36px;
+    }
+
+    /* ── Brand ── */
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .brand-icon {
+      width: 52px;
+      height: 52px;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      box-shadow: 0 0 24px var(--accent-soft);
+    }
+    .brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .brand-name {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Welcome text ── */
+    .welcome {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .welcome h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -.4px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .welcome h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome p {
+      font-size: .8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .input-wrap { position: relative; }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: .9rem;
+      pointer-events: none;
+      opacity: .5;
+    }
+
+    input[type=email],
+    input[type=password],
+    input[type=text] {
+      width: 100%;
+      background: var(--subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px 11px 38px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: .85rem;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: rgba(255,235,10,.45);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    .pw-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .8rem;
+      padding: 4px;
+      transition: color .15s;
+    }
+    .pw-toggle:hover { color: var(--accent); }
+
+    /* ── Error ── */
+    .error-msg {
+      display: none;
+      background: var(--accent-soft);
+      border: 1px solid rgba(255,235,10,.28);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #fde047;
+      font-size: .75rem;
+      margin-bottom: 14px;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── Button ── */
+    .btn-login {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      border: none;
+      border-radius: 10px;
+      color: var(--accent-ink);
+      font-family: 'Inter', sans-serif;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity .15s, transform .15s;
+      box-shadow: 0 4px 16px var(--accent-soft);
+    }
+    .btn-login:hover  { opacity: .9; transform: translateY(-1px); }
+    .btn-login:active { transform: translateY(0); opacity: 1; }
+    .btn-login:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .spinner-sm {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(20,26,10,.25);
+      border-top-color: var(--accent-ink);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+    .btn-login.loading .spinner-sm  { display: block; }
+    .btn-login.loading .btn-text    { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ── */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 20px;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(1.3); }
+    }
+
+    .footer-txt {
+      font-size: .68rem;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-inner">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true"><img src="logo.png" alt="" width="52" height="52" decoding="async" /></div>
+        <div class="brand-name">Ridera Admin</div>
+      </div>
+
+      <!-- Welcome -->
+      <div class="welcome">
+        <h1>Welcome to<br><span>Ridera</span> 👋</h1>
+        <p>Sign in to access your dashboard.</p>
+      </div>
+
+      <!-- Error -->
+      <div class="error-msg" id="error-msg">❌ Invalid email or password</div>
+
+      <!-- Form -->
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="email" placeholder="admin@ridera.com" required autocomplete="username"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" placeholder="••••••••••" required autocomplete="current-password"/>
+            <button type="button" class="pw-toggle" id="pw-toggle" title="Show/hide password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="login-btn">
+          <div class="spinner-sm"></div>
+          <span class="btn-text">Sign In</span>
+        </button>
+      </form>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+      <div class="live-dot"></div>
+      <span class="footer-txt">System Online · ridera-f30a8</span>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('ridera_auth') === 'true') {
+      window.location.href = '/';
+    }
+
+    // Password toggle
+    document.getElementById('pw-toggle').addEventListener('click', () => {
+      const pw  = document.getElementById('password');
+      const btn = document.getElementById('pw-toggle');
+      if (pw.type === 'password') { pw.type = 'text';     btn.textContent = '🙈'; }
+      else                        { pw.type = 'password'; btn.textContent = '👁️'; }
+    });
+
+    async function tryLoginRequest(url, email, password) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        data = { error: text || 'Unexpected server response' };
+      }
+
+      return { res, data };
+    }
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn    = document.getElementById('login-btn');
+      const errEl  = document.getElementById('error-msg');
+      const email  = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      errEl.classList.remove('show');
+
+      try {
+        // Try both common backend routes used by this project.
+        let result;
+        try {
+          result = await tryLoginRequest('/api/login', email, password);
+        } catch (_) {
+          result = await tryLoginRequest('/login', email, password);
+        }
+        const { res, data } = result;
+
+        if (res.ok && data.success) {
+          localStorage.setItem('ridera_auth',  'true');
+          localStorage.setItem('ridera_token', data.token);
+          window.location.href = '/';
+        } else {
+          errEl.textContent = '❌ ' + (data.error || 'Invalid credentials');
+          errEl.classList.add('show');
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      } catch (err) {
+        errEl.textContent = '❌ Server error — make sure the server is running';
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    });
+  </script>
+</body>
+</html>
