@@ -3,7 +3,16 @@ const fs = require("fs");
 const path = require("path");
 
 // ─── Initialize Firebase ─────────────────────────────────────────────────────
-const serviceAccount = require("c:/Users/Johnides/Desktop/Downloads/ridera-f30a8-firebase-adminsdk-fbsvc-58bf88cb51.json");
+// On Render: set FIREBASE_SERVICE_ACCOUNT_BASE64 env var (base64-encoded JSON).
+// Locally: falls back to the service account JSON file next to the project root.
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+  serviceAccount = JSON.parse(
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8")
+  );
+} else {
+  serviceAccount = require(path.join(__dirname, "..", "ridera-f30a8-firebase-adminsdk-fbsvc-aff8ccd5da.json"));
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
