@@ -13,13 +13,14 @@
 
 <body>
 
-  <!-- ── CRASH SNACKBAR ─────────────────────────────────────────────────── -->
+  <!-- ── CRASH NOTIFICATION BAR (top-right panel) ────────────────────── -->
   <div id="crash-snackbar" class="crash-snackbar" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="snackbar-inner">
       <div class="snackbar-icon">🚨</div>
       <div class="snackbar-content">
         <div class="snackbar-title">New Crash Detected!</div>
         <div class="snackbar-msg" id="snackbar-msg">A new riding crash event has been recorded.</div>
+        <div class="snackbar-time" id="snackbar-time"></div>
       </div>
       <button class="snackbar-close" id="snackbar-close" aria-label="Dismiss notification">✕</button>
     </div>
@@ -55,7 +56,10 @@
     <div class="nav-links">
       <button class="nav-link" data-page="devices" onclick="router.go('devices')">🔌 Devices</button>
       <button class="nav-link" data-page="users" onclick="router.go('users')">👥 Users</button>
-      <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
+      <span class="nav-link-wrap">
+        <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
+        <span class="nav-notif-badge" id="nav-crash-badge"></span>
+      </span>
     </div>
     <div class="nav-end">
       <div class="live-dot"></div>

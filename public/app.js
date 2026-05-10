@@ -2,25 +2,7 @@
 const maps = {};
 const mapMarkers = {}; // tracks markers per map for clearing
 
-const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#0e1117' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#07090f' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#131927' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1a2340' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#07090f' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1e3a5f' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#07090f' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#e2e8f0' }] },
-  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#131927' }] },
-  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#07090f' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3b82f6' }] },
-  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#07090f' }] },
-];
+// Maps use the default Google Maps light/white style (no custom styles)
 
 function getOrCreateMap(id, lat = 14.0727, lng = 120.6235, zoom = 13) {
   if (maps[id]) return maps[id];
@@ -30,7 +12,7 @@ function getOrCreateMap(id, lat = 14.0727, lng = 120.6235, zoom = 13) {
     center: { lat: +lat, lng: +lng },
     zoom,
     mapTypeId: 'roadmap',
-    styles: DARK_MAP_STYLE,
+    styles: [],          // default light/white Google Maps style
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: true,
@@ -135,6 +117,7 @@ function showCrashSnackbar(msg = 'A new riding crash event has been recorded.', 
   const bar = document.getElementById('crash-snackbar');
   const msgEl = document.getElementById('snackbar-msg');
   const prog = document.getElementById('snackbar-progress');
+  const timeEl = document.getElementById('snackbar-time');
   if (!bar || !msgEl || !prog) return;
 
   // Clear any existing timer
@@ -144,6 +127,14 @@ function showCrashSnackbar(msg = 'A new riding crash event has been recorded.', 
   msgEl.textContent = msg;
   bar.classList.remove('snackbar-high');
   if (severity === 'high') bar.classList.add('snackbar-high');
+
+  // Timestamp
+  if (timeEl) {
+    timeEl.textContent = '⏱ ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  // Show red badge on Crash Alert nav button
+  document.getElementById('nav-crash-badge')?.classList.add('badge-visible');
 
   // Reset & restart progress bar
   prog.classList.remove('snackbar-draining');
@@ -170,6 +161,8 @@ function dismissSnackbar() {
   if (!bar) return;
   bar.classList.remove('snackbar-show');
   if (_snackbarTimer) { clearTimeout(_snackbarTimer); _snackbarTimer = null; }
+  // Hide nav badge when notification is dismissed
+  document.getElementById('nav-crash-badge')?.classList.remove('badge-visible');
 }
 
 /** Firebase RTDB uses `crash_history`; older data may use `crashes`. */
@@ -216,13 +209,20 @@ function signOut() {
 }
 
 let refreshIntervalStarted = false;
+function scheduleNextRefresh() {
+  // Random interval between 5 000 ms and 15 000 ms
+  const delay = Math.floor(Math.random() * 10000) + 5000;
+  setTimeout(() => {
+    if (router.current?.page === 'dashboard') pageDashboard();
+    if (router.current?.page === 'devices') pageDevices();
+    scheduleNextRefresh(); // re-schedule after each run
+  }, delay);
+}
+
 function startRefreshInterval() {
   if (refreshIntervalStarted) return;
   refreshIntervalStarted = true;
-  setInterval(() => {
-    if (router.current?.page === 'dashboard') pageDashboard();
-    if (router.current?.page === 'devices') pageDevices();
-  }, 15000);
+  scheduleNextRefresh();
 }
 
 async function tryResumeSession() {
