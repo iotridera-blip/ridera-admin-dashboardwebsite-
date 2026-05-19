@@ -12,12 +12,12 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8")
   );
 } else {
-  serviceAccount = require(path.join(__dirname, "..", "ridera-f30a8-firebase-adminsdk-fbsvc-aff8ccd5da.json"));
+  serviceAccount = require(path.join(__dirname, "..", "ridera-dg7-firebase-adminsdk.json"));
 }
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://ridera-f30a8-default-rtdb.firebaseio.com/",
+  databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com/",
 });
 
 const db = admin.database();
@@ -183,6 +183,6 @@ app.listen(PORT, () => {
   console.log("=".repeat(50));
   console.log(`🏍️  Ridera Admin Server running!`);
   console.log(`🌐  Open: http://localhost:${PORT}`);
-  console.log(`🔥  Firebase: ridera-f30a8`);
+  console.log(`🔥  Firebase: ridera-dg7`);
   console.log("=".repeat(50));
 });
