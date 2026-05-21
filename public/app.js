@@ -307,33 +307,63 @@ async function pageDashboard() {
       const sev = (d.severity || 'low').toLowerCase();
       const bc = sev === 'high' ? 'badge-high' : sev === 'medium' ? 'badge-med' : 'badge-low';
 
-      // Riding type detection — support both explicit field and type string
+      // Riding type detection
       const rawType = (d.type || '').toLowerCase();
       const ridingType = d.riding_type || (rawType.includes('upright') ? 'upright' : rawType.includes('crash') ? 'crashed' : null);
       const isCrashed = ridingType ? ridingType.toLowerCase().includes('crash') : true;
       const ridingLabel = isCrashed ? '🔴 Riding Crashed' : '🟢 Riding Upright';
       const ridingClass = isCrashed ? 'riding-crashed' : 'riding-upright';
 
-      return `<div class="crash-item">
-        <div class="crash-top">
+      // Responder status
+      const rs = (d.responder_status || '').toLowerCase();
+      const rsLabel = rs === 'on_the_way' ? '🚗 On The Way' : rs === 'arrived' ? '📍 Arrived' : rs === 'resolved' ? '✅ Resolved' : '⏳ Pending';
+      const rsClass = rs === 'resolved' ? 'rs-tag-resolved' : rs === 'arrived' ? 'rs-tag-arrived' : rs === 'on_the_way' ? 'rs-tag-onway' : 'rs-tag-pending';
+
+      // Photo avatar
+      const photoHtml = (d.photo && d.photo.startsWith('http'))
+        ? `<img src="${d.photo}" class="crash-rider-photo">`  : '';
+
+      return `<div class="crash-item" id="crash-item-${i}">
+        <!-- ── Clickable header ── -->
+        <div class="crash-top crash-toggle" onclick="toggleCrashExpand(${i})">
           <span>🚨</span>
           <span class="badge ${bc}">${sev}</span>
           <span class="riding-type-badge ${ridingClass}">${ridingLabel}</span>
+          <span class="responder-tag ${rsClass}" id="rs-top-badge-${i}">${rsLabel}</span>
           <span class="crash-path">${c.path}</span>
+          <span class="crash-chevron" id="crash-chevron-${i}">▼</span>
         </div>
-        <div class="crash-fields">
-          ${d.date ? `<div><div class="cf-label">Date</div><div class="cf-val">📅 ${d.date}</div></div>` : ''}
-          ${d.time ? `<div><div class="cf-label">Time</div><div class="cf-val">🕐 ${d.time}</div></div>` : ''}
-          ${d.speed !== undefined ? `<div><div class="cf-label">Speed</div><div class="cf-val">⚡ ${d.speed} km/h</div></div>` : ''}
-          ${d.rider_name ? `<div><div class="cf-label">Rider Name</div><div class="cf-val">👤 ${d.rider_name}</div></div>` : ''}
-          ${d.rider_phone ? `<div><div class="cf-label">Phone</div><div class="cf-val">📞 ${d.rider_phone}</div></div>` : ''}
-          ${d.rider_plate ? `<div><div class="cf-label">Plate No.</div><div class="cf-val">🏍️ ${d.rider_plate}</div></div>` : ''}
-          ${d.rider_model ? `<div><div class="cf-label">Motorcycle</div><div class="cf-val">🏍️ ${d.rider_model}</div></div>` : ''}
-          ${d.latitude ? `<div style="grid-column:1/-1"><div class="cf-label">GPS</div><div class="cf-val cf-mono">📍 ${d.latitude}, ${d.longitude}</div></div>` : ''}
-          ${d.type ? `<div class="crash-type-tag">💥 ${d.type.replace(/_/g, ' ').toUpperCase()}</div>` : ''}
-          <div style="grid-column:1/-1">
-            <div class="cf-label">Riding Status</div>
-            <div class="riding-status-bar">
+
+        <!-- ── Expandable detail body ── -->
+        <div class="crash-detail-body" id="crash-detail-${i}">
+          <div class="crash-detail-inner">
+
+            <!-- Rider photo + identity -->
+            <div class="crash-rider-row">
+              ${photoHtml}
+              <div class="crash-all-fields">
+                ${d.name       ? `<div class="caf-row"><span class="caf-key">👤 Name</span><span class="caf-val">${d.name}</span></div>` : ''}
+                ${d.phone      ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${d.phone}</span></div>` : ''}
+                ${d.sex        ? `<div class="caf-row"><span class="caf-key">⚧ Sex</span><span class="caf-val">${d.sex}</span></div>` : ''}
+                ${d.date       ? `<div class="caf-row"><span class="caf-key">📅 Date</span><span class="caf-val">${d.date}</span></div>` : ''}
+                ${d.time       ? `<div class="caf-row"><span class="caf-key">🕐 Time</span><span class="caf-val">${d.time}</span></div>` : ''}
+                ${d.speed !== undefined ? `<div class="caf-row"><span class="caf-key">⚡ Speed</span><span class="caf-val">${d.speed} km/h</span></div>` : ''}
+                ${d.latitude !== undefined ? `<div class="caf-row"><span class="caf-key">📍 GPS</span><span class="caf-val caf-mono">${d.latitude}, ${d.longitude}</span></div>` : ''}
+                ${d.vehicle_model ? `<div class="caf-row"><span class="caf-key">🏍️ Model</span><span class="caf-val">${d.vehicle_model}</span></div>` : ''}
+                ${d.vehicle_plate ? `<div class="caf-row"><span class="caf-key">🏷️ Plate</span><span class="caf-val">${d.vehicle_plate}</span></div>` : ''}
+                ${d.vehicle_color ? `<div class="caf-row"><span class="caf-key">🎨 Color</span><span class="caf-val">${d.vehicle_color}</span></div>` : ''}
+                ${d.vehicle_type  ? `<div class="caf-row"><span class="caf-key">🛵 Type</span><span class="caf-val">${d.vehicle_type}</span></div>` : ''}
+                ${d.type          ? `<div class="caf-row"><span class="caf-key">💥 Crash Type</span><span class="caf-val">${d.type.replace(/_/g,' ').toUpperCase()}</span></div>` : ''}
+                ${d.severity      ? `<div class="caf-row"><span class="caf-key">⚠️ Severity</span><span class="caf-val">${d.severity}</span></div>` : ''}
+                ${d.crashId       ? `<div class="caf-row"><span class="caf-key">🆔 Crash ID</span><span class="caf-val caf-mono">${d.crashId}</span></div>` : ''}
+                ${d.createdAt     ? `<div class="caf-row"><span class="caf-key">🕓 Created At</span><span class="caf-val caf-mono">${new Date(d.createdAt).toLocaleString('en-PH')}</span></div>` : ''}
+                ${d.alert_received_at ? `<div class="caf-row"><span class="caf-key">🔔 Alert Received</span><span class="caf-val caf-mono">${new Date(d.alert_received_at).toLocaleString('en-PH')}</span></div>` : ''}
+                <div class="caf-row"><span class="caf-key">📂 DB Path</span><span class="caf-val caf-mono" style="font-size:.68rem;word-break:break-all">${c.path}</span></div>
+              </div>
+            </div>
+
+            <!-- Riding status bar -->
+            <div class="riding-status-bar" style="margin:14px 0">
               <div class="riding-status-item ${isCrashed ? 'rs-active-crash' : 'rs-inactive'}">
                 <span class="rs-dot"></span> Riding Crashed
                 ${isCrashed ? '<span class="rs-check">✓</span>' : ''}
@@ -343,13 +373,74 @@ async function pageDashboard() {
                 ${!isCrashed ? '<span class="rs-check">✓</span>' : ''}
               </div>
             </div>
+
+            <!-- Responder status control -->
+            <div class="responder-ctrl">
+              <div class="responder-ctrl-header">
+                <span class="responder-ctrl-title">🛡️ Responder Status</span>
+                <span class="responder-tag ${rsClass}" id="rs-badge-${i}">${rsLabel}</span>
+              </div>
+              <div class="responder-btns">
+                <button class="responder-btn rb-onway  ${rs === 'on_the_way' ? 'rb-active' : ''}" id="rb-onway-${i}"  onclick="updateResponderStatus('${c.path}','on_the_way',${i})">🚗 ON THE WAY</button>
+                <button class="responder-btn rb-arrive ${rs === 'arrived'    ? 'rb-active' : ''}" id="rb-arrive-${i}" onclick="updateResponderStatus('${c.path}','arrived',${i})">📍 ARRIVE</button>
+                <button class="responder-btn rb-resolve ${rs === 'resolved'  ? 'rb-active' : ''}" id="rb-resolve-${i}" onclick="updateResponderStatus('${c.path}','resolved',${i})">✅ RESOLVE</button>
+              </div>
+            </div>
+
           </div>
+          ${d.latitude ? `<button class="fly-btn" style="margin:0 14px 14px" onclick="flyTo('crash-map',${d.latitude},${d.longitude})">🗺️ View on Map</button>` : ''}
         </div>
-        ${d.latitude ? `<button class="fly-btn" onclick="flyTo('crash-map',${d.latitude},${d.longitude})">🗺️ View on Map</button>` : ''}
       </div>`;
     }).join('');
   } catch (e) {
     document.getElementById('crash-list').innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CRASH CARD HELPERS
+// ─────────────────────────────────────────────────────────────────────────
+function toggleCrashExpand(i) {
+  const body = document.getElementById(`crash-detail-${i}`);
+  const chevron = document.getElementById(`crash-chevron-${i}`);
+  if (!body) return;
+  const isOpen = body.classList.contains('crash-detail-open');
+  body.classList.toggle('crash-detail-open', !isOpen);
+  if (chevron) chevron.textContent = isOpen ? '▼' : '▲';
+}
+
+async function updateResponderStatus(fbPath, status, idx) {
+  try {
+    const r = await apiFetch('/api/responder-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: fbPath, status })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert('❌ Failed to update: ' + (err.error || `HTTP ${r.status}`));
+      return;
+    }
+    const rsLabel = status === 'on_the_way' ? '🚗 On The Way' : status === 'arrived' ? '📍 Arrived' : '✅ Resolved';
+    const rsClass = status === 'resolved' ? 'rs-tag-resolved' : status === 'arrived' ? 'rs-tag-arrived' : 'rs-tag-onway';
+    // Update both badges
+    [document.getElementById(`rs-badge-${idx}`), document.getElementById(`rs-top-badge-${idx}`)].forEach(el => {
+      if (!el) return;
+      el.textContent = rsLabel;
+      el.className = el.className.replace(/rs-tag-\w+/, rsClass);
+    });
+    // Toggle active button
+    const keyMap = { on_the_way: 'onway', arrived: 'arrive', resolved: 'resolve' };
+    ['onway','arrive','resolve'].forEach(k => document.getElementById(`rb-${k}-${idx}`)?.classList.remove('rb-active'));
+    document.getElementById(`rb-${keyMap[status]}-${idx}`)?.classList.add('rb-active');
+    // Toast
+    const toast = document.createElement('div');
+    toast.textContent = `✅ Responder status → "${rsLabel}"`;
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;z-index:9999;box-shadow:0 4px 20px #0006;font-size:.9rem;pointer-events:none';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  } catch (ex) {
+    alert('❌ Network error: ' + ex.message);
   }
 }
 
@@ -367,7 +458,7 @@ async function pageUsers() {
     document.getElementById('stat-users-count').textContent = entries.length;
 
     const withCrash = entries.filter(([, u]) => userCrashEntries(u).length > 0).length;
-    const withDevice = entries.filter(([, u]) => u.motorcycle_model || u.plate_number).length;
+    const withDevice = entries.filter(([, u]) => u.vehicle_model || u.vehicle_plate || u.bound_device).length;
     document.getElementById('stat-with-crash').textContent = withCrash;
     document.getElementById('stat-with-device').textContent = withDevice;
 
@@ -375,34 +466,71 @@ async function pageUsers() {
       const col = avatarColor(u.name || id);
       const init = initials(u.name || id);
       const hasCrash = userCrashEntries(u).length > 0;
-      const hasMoto = !!(u.motorcycle_model || u.plate_number);
+      const hasMoto = !!(u.vehicle_model || u.vehicle_plate);
+      const avatarHtml = (u.photo && u.photo.startsWith('http'))
+        ? `<img src="${u.photo}" class="user-avatar" style="object-fit:cover;padding:0">`
+        : `<div class="user-avatar" style="background:${col}22;color:${col}">${init}</div>`;
+      const safeName = (u.name || 'this user').replace(/'/g, "\\'");
       return `<tr class="user-row" onclick="router.go('user-detail',{id:'${id}'})">
         <td><div class="user-name-cell">
-          <div class="user-avatar" style="background:${col}22;color:${col}">${init}</div>
+          ${avatarHtml}
           <div>
             <div style="font-weight:600">${u.name || '—'}</div>
             <div style="font-size:.72rem;color:var(--muted)">${u.email || '—'}</div>
           </div>
         </div></td>
         <td>${u.phone || '—'}</td>
+        <td>${u.address || '—'}</td>
         <td>${fmtDate(u.joinedAt || u.createdAt)}</td>
         <td>
-          ${hasCrash ? '<span class="tag tag-crash">🚨 Crash</span> ' : ''} 
-          ${hasMoto ? `<span class="tag tag-device">🏍️ ${u.motorcycle_model || ''}</span>` : ''}
+          ${hasCrash ? '<span class="tag tag-crash">🚨 Crash</span> ' : ''}
+          ${hasMoto ? `<span class="tag tag-device">🏍️ ${u.vehicle_model || ''}</span>` : ''}
+          ${(() => { const bd = (u.bound_device || '').toUpperCase(); return bd && bd !== 'NONE' ? `<span class="tag tag-active" style="font-size:.68rem">🔌 ${u.bound_device}</span>` : `<span class="tag tag-inactive" style="font-size:.68rem">🔌 None</span>`; })()}
         </td>
         <td><span class="tag ${u.active !== false ? 'tag-active' : 'tag-inactive'}">${u.active !== false ? 'Active' : '—'}</span></td>
+        <td onclick="event.stopPropagation()">
+          <button class="delete-user-btn" onclick="deleteUser('${id}','${safeName}')" title="Delete user">
+            🗑️ Delete
+          </button>
+        </td>
       </tr>`;
     }).join('');
 
     document.getElementById('users-table-wrap').innerHTML = `
       <table class="user-table">
         <thead><tr>
-          <th>Name</th><th>Phone</th><th>Joined</th><th>Tags</th><th>Status</th>
+          <th>Name</th><th>Phone</th><th>Address</th><th>Joined</th><th>Tags</th><th>Status</th><th>Actions</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   } catch (e) {
     document.getElementById('users-table-wrap').innerHTML = `<div class="error-box">❌ ${e.message}</div>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// DELETE USER
+// ─────────────────────────────────────────────────────────────────────────
+async function deleteUser(id, name) {
+  const confirmed = window.confirm(`⚠️ Delete user "${name}"?\n\nThis will permanently remove the user from the Firebase database. This action cannot be undone.`);
+  if (!confirmed) return;
+
+  try {
+    const r = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert('❌ Failed to delete user: ' + (err.error || `HTTP ${r.status}`));
+      return;
+    }
+    // Show success feedback then reload the users list
+    const toast = document.createElement('div');
+    toast.textContent = `✅ User "${name}" deleted successfully.`;
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;z-index:9999;box-shadow:0 4px 20px #0006;font-size:.9rem';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+    pageUsers(); // Refresh the user list
+  } catch (ex) {
+    alert('❌ Network error: ' + ex.message);
   }
 }
 
@@ -449,29 +577,81 @@ async function pageUserDetail({ id }) {
       </div>`;
     }
 
+    // ── Avatar: photo URL if available, otherwise colored initials ─────
+    const heroAvatarHtml = (u.photo && u.photo.startsWith('http'))
+      ? `<img src="${u.photo}" class="hero-avatar" style="object-fit:cover;padding:0;border:3px solid ${col}">`
+      : `<div class="hero-avatar" style="background:${col}22;color:${col}">${init}</div>`;
+
+    // ── Emergency contacts ───────────────────────────────────────────────
+    const contacts = Object.values(u.alert_contacts || {});
+    const contactsSection = contacts.length ? `
+      <div class="card">
+        <div class="card-header"><span class="card-icon">📞</span><span class="card-title">Emergency Contacts (${contacts.length})</span></div>
+        <div class="card-body">
+          ${contacts.map(c => {
+            const cCol = avatarColor(c.contact_name || '?');
+            const cInit = initials(c.contact_name || '?');
+            const cAvatar = (c.contact_photo && c.contact_photo.startsWith('http'))
+              ? `<img src="${c.contact_photo}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+              : `<div style="width:38px;height:38px;border-radius:50%;background:${cCol}22;color:${cCol};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0">${cInit}</div>`;
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+              ${cAvatar}
+              <div>
+                <div style="font-weight:600">${c.contact_name || '—'}</div>
+                <div style="font-size:.75rem;color:var(--muted)">${c.contact_relationship || ''} · 📞 ${c.contact_phone || '—'}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+
     document.getElementById('user-detail-body').innerHTML = `
       <div class="user-hero">
-        <div class="hero-avatar" style="background:${col}22;color:${col}">${init}</div>
+        ${heroAvatarHtml}
         <div>
           <div class="hero-name">${u.name || 'Unknown'}</div>
           <div class="hero-email">${u.email || '—'}</div>
           <div class="hero-tags">
-            ${u.motorcycle_model ? `<span class="tag tag-device">🏍️ ${u.motorcycle_model}</span>` : ''}
-            ${u.plate_number ? `<span class="tag tag-device">🏷️ ${u.plate_number}</span>` : ''}
+            ${u.vehicle_model ? `<span class="tag tag-device">🏍️ ${u.vehicle_model}</span>` : ''}
+            ${u.vehicle_plate ? `<span class="tag tag-device">🏷️ ${u.vehicle_plate}</span>` : ''}
+            ${(() => { const bd = (u.bound_device || '').toUpperCase(); return bd && bd !== 'NONE' ? `<span class="tag tag-active">🔌 ${u.bound_device}</span>` : `<span class="tag tag-inactive">🔌 Not Connected</span>`; })()}
             ${u.phone ? `<span class="tag tag-active">📞 ${u.phone}</span>` : ''}
             ${crashes.length ? `<span class="tag tag-crash">🚨 ${crashes.length} crash(es)</span>` : ''}
             <span class="tag tag-inactive">📅 Joined: ${fmtDate(u.joinedAt || u.createdAt)}</span>
           </div>
         </div>
       </div>
-      <div class="info-grid" style="margin-bottom:18px">
-        <div class="info-item"><div class="info-label">User ID</div><div class="info-val" style="font-family:monospace;font-size:.78rem">${id}</div></div>
-        <div class="info-item"><div class="info-label">Email</div><div class="info-val">${u.email || '—'}</div></div>
-        <div class="info-item"><div class="info-label">Phone</div><div class="info-val">${u.phone || '—'}</div></div>
-        <div class="info-item"><div class="info-label">Motorcycle</div><div class="info-val">${u.motorcycle_model || '—'}</div></div>
-        <div class="info-item"><div class="info-label">Plate</div><div class="info-val">${u.plate_number || '—'}</div></div>
-        <div class="info-item"><div class="info-label">Crashes</div><div class="info-val c-red">${crashes.length}</div></div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">👤</span><span class="card-title">Personal Info</span></div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">Full Name</div><div class="info-val">${u.name || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Email</div><div class="info-val">${u.email || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Phone</div><div class="info-val">${u.phone || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Sex</div><div class="info-val">${u.sex || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Address</div><div class="info-val">${u.address || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Joined</div><div class="info-val">${fmtDate(u.joinedAt || u.createdAt)}</div></div>
+            <div class="info-item" style="grid-column:1/-1"><div class="info-label">UID</div><div class="info-val cf-mono" style="font-size:.75rem;word-break:break-all">${u.uid || id}</div></div>
+          </div>
+        </div>
       </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🏍️</span><span class="card-title">Vehicle Info</span></div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">Model</div><div class="info-val">${u.vehicle_model || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Plate No.</div><div class="info-val">${u.vehicle_plate || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Color</div><div class="info-val">${u.vehicle_color || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Type</div><div class="info-val">${u.vehicle_type || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Bound Device</div><div class="info-val">${(() => { const bd = (u.bound_device || '').toUpperCase(); return bd && bd !== 'NONE' ? u.bound_device : 'Not Connected'; })()}</div></div>
+            <div class="info-item"><div class="info-label">Total Crashes</div><div class="info-val c-red">${crashes.length}</div></div>
+          </div>
+        </div>
+      </div>
+
+      ${contactsSection}
       ${crashSection || '<div class="empty">No crash history for this user.</div>'}`;
 
     // Init crash map

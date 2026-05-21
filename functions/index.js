@@ -82,7 +82,8 @@ apiRouter.get("/overview", async (req, res) => {
     res.json({
       crashes,
       totalUsers:   Object.keys(d.users   || {}).length,
-      totalDevices: Object.keys(d.devices || {}).length,
+      // Exclude 'config' — it is a settings node, not a real device
+      totalDevices: Object.keys(d.devices || {}).filter(k => k !== 'config').length,
       timestamp:    new Date().toISOString(),
     });
   } catch (err) {
@@ -116,7 +117,12 @@ apiRouter.get("/users/:id", async (req, res) => {
 apiRouter.get("/devices", async (req, res) => {
   try {
     const snap = await db.ref("/Ridera/devices").once("value");
-    res.json({ devices: snap.val() || {} });
+    const raw = snap.val() || {};
+    // Strip the 'config' node — it is a settings record, not a hardware device
+    const devices = Object.fromEntries(
+      Object.entries(raw).filter(([k]) => k !== 'config')
+    );
+    res.json({ devices });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

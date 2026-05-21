@@ -504,6 +504,28 @@ nav {
   color: var(--blue)
 }
 
+/* DELETE USER BUTTON */
+.delete-user-btn {
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(239, 68, 68, .35);
+  background: rgba(239, 68, 68, .08);
+  color: #fca5a5;
+  font-size: .72rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s;
+  white-space: nowrap
+}
+
+.delete-user-btn:hover {
+  background: rgba(239, 68, 68, .22);
+  border-color: rgba(239, 68, 68, .6);
+  color: #f87171;
+  transform: scale(1.04)
+}
+
 /* DETAIL PAGE */
 .back-btn {
   display: inline-flex;
@@ -1132,6 +1154,210 @@ nav {
 .crash-snackbar.snackbar-high .snackbar-close       { border-color: rgba(255, 68, 68, .25); }
 .crash-snackbar.snackbar-high .snackbar-close:hover { border-color: #ff4444; color: #ff6b6b; background: rgba(255, 68, 68, .12); }
 .crash-snackbar.snackbar-high .snackbar-icon        { filter: drop-shadow(0 0 8px rgba(255, 68, 68, .85)); }
+
+/* ── EXPANDABLE CRASH CARD ───────────────────────────────────────────────── */
+.crash-toggle {
+  cursor: pointer;
+  user-select: none
+}
+
+.crash-toggle:hover {
+  background: rgba(255,255,255,.03);
+  border-radius: 8px
+}
+
+.crash-chevron {
+  margin-left: auto;
+  font-size: .75rem;
+  color: var(--muted);
+  transition: transform .25s;
+  flex-shrink: 0
+}
+
+.crash-detail-body {
+  display: none;
+  border-top: 1px solid var(--border);
+  animation: none
+}
+
+.crash-detail-body.crash-detail-open {
+  display: block;
+  animation: slideDown .25s ease
+}
+
+@keyframes slideDown {
+  from { opacity:0; transform:translateY(-6px) }
+  to   { opacity:1; transform:translateY(0)    }
+}
+
+.crash-detail-inner {
+  padding: 16px 14px 10px
+}
+
+/* Rider photo + fields side-by-side */
+.crash-rider-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 4px
+}
+
+.crash-rider-photo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  flex-shrink: 0
+}
+
+/* All-fields grid */
+.crash-all-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px
+}
+
+@media(max-width:600px) {
+  .crash-all-fields { grid-template-columns: 1fr }
+  .crash-rider-row  { flex-direction: column }
+  .crash-rider-photo{ width: 52px; height: 52px }
+}
+
+.caf-row {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px
+}
+
+.caf-key {
+  font-size: .62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 3px;
+  font-weight: 600
+}
+
+.caf-val {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text)
+}
+
+.caf-mono {
+  font-family: monospace;
+  color: var(--blue);
+  font-size: .78rem
+}
+
+/* Responder status tag pill */
+.responder-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  white-space: nowrap
+}
+
+.rs-tag-pending  { background: rgba(100,116,139,.15); color: var(--muted);  border: 1px solid rgba(100,116,139,.3) }
+.rs-tag-onway    { background: rgba(59,130,246,.15);  color: #93c5fd;       border: 1px solid rgba(59,130,246,.35) }
+.rs-tag-arrived  { background: rgba(234,179,8,.15);   color: var(--yellow); border: 1px solid rgba(234,179,8,.35)  }
+.rs-tag-resolved { background: rgba(34,197,94,.15);   color: var(--green);  border: 1px solid rgba(34,197,94,.35)  }
+
+/* Responder control block */
+.responder-ctrl {
+  margin-top: 14px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px
+}
+
+.responder-ctrl-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px
+}
+
+.responder-ctrl-title {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text)
+}
+
+/* Three action buttons */
+.responder-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap
+}
+
+.responder-btn {
+  flex: 1;
+  min-width: 110px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: .4px;
+  transition: all .18s;
+  border: 1px solid transparent
+}
+
+/* ON THE WAY — blue */
+.rb-onway {
+  background: rgba(59,130,246,.1);
+  border-color: rgba(59,130,246,.3);
+  color: #93c5fd
+}
+.rb-onway:hover,
+.rb-onway.rb-active {
+  background: rgba(59,130,246,.28);
+  border-color: #3b82f6;
+  color: #bfdbfe;
+  box-shadow: 0 0 12px rgba(59,130,246,.25)
+}
+
+/* ARRIVE — yellow */
+.rb-arrive {
+  background: rgba(234,179,8,.1);
+  border-color: rgba(234,179,8,.3);
+  color: var(--yellow)
+}
+.rb-arrive:hover,
+.rb-arrive.rb-active {
+  background: rgba(234,179,8,.28);
+  border-color: var(--yellow);
+  color: #fef08a;
+  box-shadow: 0 0 12px rgba(234,179,8,.25)
+}
+
+/* RESOLVE — green */
+.rb-resolve {
+  background: rgba(34,197,94,.1);
+  border-color: rgba(34,197,94,.3);
+  color: var(--green)
+}
+.rb-resolve:hover,
+.rb-resolve.rb-active {
+  background: rgba(34,197,94,.28);
+  border-color: var(--green);
+  color: #86efac;
+  box-shadow: 0 0 12px rgba(34,197,94,.25)
+}
+
 
 /* ── Notification badge on nav Crash Alert button ───────────────────────── */
 .nav-link-wrap {

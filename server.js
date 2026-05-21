@@ -114,7 +114,8 @@ app.get("/api/overview", async (req, res) => {
 
     const crashes = findCrashes(d);
     const totalUsers = Object.keys(d.users || {}).length;
-    const totalDevices = Object.keys(d.devices || {}).length;
+    // Exclude 'config' — it is a settings node, not a real device
+    const totalDevices = Object.keys(d.devices || {}).filter(k => k !== 'config').length;
 
     res.json({
       crashes,
@@ -157,10 +158,40 @@ app.get("/api/users/:id", async (req, res) => {
 app.get("/api/devices", async (req, res) => {
   try {
     const snapshot = await db.ref("/Ridera/devices").once("value");
-    const devices = snapshot.val() || {};
+    const raw = snapshot.val() || {};
+    // Strip the 'config' node — it is a settings record, not a hardware device
+    const devices = Object.fromEntries(
+      Object.entries(raw).filter(([k]) => k !== 'config')
+    );
     res.json({ devices });
   } catch (err) {
     console.error("/api/devices error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── API: Update Responder Status ─────────────────────────────────────────────
+app.patch("/api/responder-status", async (req, res) => {
+  try {
+    const { path: fbPath, status } = req.body || {};
+    if (!fbPath || !status) return res.status(400).json({ error: "Missing path or status" });
+    const allowed = ['on_the_way', 'arrived', 'resolved'];
+    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status. Use: on_the_way | arrived | resolved" });
+    await db.ref(fbPath).update({ responder_status: status });
+    res.json({ success: true, path: fbPath, responder_status: status });
+  } catch (err) {
+    console.error("/api/responder-status PATCH error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── API: Delete User ─────────────────────────────────────────────────────────
+app.delete("/api/users/:id", async (req, res) => {
+  try {
+    await db.ref(`/Ridera/users/${req.params.id}`).remove();
+    res.json({ success: true, deleted: req.params.id });
+  } catch (err) {
+    console.error("/api/users/:id DELETE error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
