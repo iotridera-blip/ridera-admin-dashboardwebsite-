@@ -1,13 +1,13 @@
 // ── Firebase Client SDK — Real-time Alerts Listener ─────────────────────────
-// Web config: Firebase Console → Project Settings → Your Apps → Web App
 const _fbConfig = {
-  apiKey:            "AIzaSyBmm4xxxxxxxxxxxxxxxxxxxxxxxxxxx", // ← replace with your web API key
+  apiKey:            "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
   authDomain:        "ridera-dg7.firebaseapp.com",
   databaseURL:       "https://ridera-dg7-default-rtdb.firebaseio.com",
   projectId:         "ridera-dg7",
   storageBucket:     "ridera-dg7.firebasestorage.app",
-  messagingSenderId: "000000000000",  // ← replace
-  appId:             "1:000000000000:web:0000000000000000000000", // ← replace
+  messagingSenderId: "139828355676",
+  appId:             "1:139828355676:web:fb8de1c261db813130bc99",
+  measurementId:     "G-RX9N66J29B",
 };
 if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
 const _rtdb = firebase.database();
