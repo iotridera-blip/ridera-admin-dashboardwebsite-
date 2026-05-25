@@ -99,6 +99,16 @@
       </div>
     </div>
 
+    <!-- ── Active Alerts (Firebase real-time listener) ── -->
+    <div class="card">
+      <div class="card-header"><span class="card-icon">🔔</span><span class="card-title">Active Alerts — Real-time</span></div>
+      <div class="card-body">
+        <div id="alert-list">
+          <div class="loading"><div class="spinner"></div>Waiting for alerts…</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash Locations</span></div>
       <div class="card-body np">
@@ -189,6 +199,9 @@
   </div>
   </div>
 
+  <!-- Firebase client SDK (compat) for real-time alerts listener -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZ0bp_eKfhhT2RhFqdlE54sJqmy2sS2y0&v=weekly"></script>
   <script src="app.js"></script>
 </body>

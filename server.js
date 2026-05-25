@@ -175,8 +175,8 @@ app.patch("/api/responder-status", async (req, res) => {
   try {
     const { path: fbPath, status } = req.body || {};
     if (!fbPath || !status) return res.status(400).json({ error: "Missing path or status" });
-    const allowed = ['on_the_way', 'arrived', 'resolved'];
-    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status. Use: on_the_way | arrived | resolved" });
+    const allowed = ['alert_received', 'on_the_way', 'arrived', 'resolved'];
+    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status. Use: alert_received | on_the_way | arrived | resolved" });
     await db.ref(fbPath).update({ responder_status: status });
     res.json({ success: true, path: fbPath, responder_status: status });
   } catch (err) {

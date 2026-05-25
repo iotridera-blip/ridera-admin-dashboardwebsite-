@@ -1,3 +1,17 @@
+// ── Firebase Client SDK — Real-time Alerts Listener ─────────────────────────
+// Web config: Firebase Console → Project Settings → Your Apps → Web App
+const _fbConfig = {
+  apiKey:            "AIzaSyBmm4xxxxxxxxxxxxxxxxxxxxxxxxxxx", // ← replace with your web API key
+  authDomain:        "ridera-dg7.firebaseapp.com",
+  databaseURL:       "https://ridera-dg7-default-rtdb.firebaseio.com",
+  projectId:         "ridera-dg7",
+  storageBucket:     "ridera-dg7.firebasestorage.app",
+  messagingSenderId: "000000000000",  // ← replace
+  appId:             "1:000000000000:web:0000000000000000000000", // ← replace
+};
+if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+const _rtdb = firebase.database();
+
 // ── Maps (Google Maps JS API v3) ──────────────────────────────────────────
 const maps = {};
 const mapMarkers = {}; // tracks markers per map for clearing
@@ -80,6 +94,8 @@ function flyTo(mapId, lat, lng) {
 }
 
 // ── Router ────────────────────────────────────────────────────────────────
+const LAST_PAGE_KEY = 'ridera_last_page';
+
 const router = {
   current: null,
   go(page, params = {}) {
@@ -90,6 +106,10 @@ const router = {
     const nl = document.querySelector(`[data-page="${page}"]`);
     if (nl) nl.classList.add('active');
     this.current = { page, params };
+    // Persistent page state — save top-level pages only (not user-detail which needs params)
+    if (['dashboard', 'devices', 'users'].includes(page)) {
+      localStorage.setItem(LAST_PAGE_KEY, page);
+    }
     pages[page]?.(params);
     // Fix map size after display
     setTimeout(() => { Object.values(maps).forEach(m => google.maps.event.trigger(m, 'resize')); }, 100);
@@ -210,11 +230,11 @@ function signOut() {
 
 let refreshIntervalStarted = false;
 function scheduleNextRefresh() {
-  // Random interval between 5 000 ms and 15 000 ms
-  const delay = Math.floor(Math.random() * 10000) + 5000;
+  // Refresh live telemetry every 50 – 60 seconds
+  const delay = Math.floor(Math.random() * 10000) + 50000; // 50 000 – 60 000 ms
   setTimeout(() => {
     if (router.current?.page === 'dashboard') pageDashboard();
-    if (router.current?.page === 'devices') pageDevices();
+    if (router.current?.page === 'devices')   pageDevices();
     scheduleNextRefresh(); // re-schedule after each run
   }, delay);
 }
@@ -235,8 +255,11 @@ async function tryResumeSession() {
     const r = await fetch('/api/overview', { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) {
       showAppShell();
-      router.go('dashboard');
+      // Persistent page state — restore last visited page, default to dashboard
+      const lastPage = localStorage.getItem(LAST_PAGE_KEY) || 'dashboard';
+      router.go(lastPage);
       startRefreshInterval();
+      listenForAlerts(); // start real-time alert listener — once
       return;
     }
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -442,6 +465,125 @@ async function updateResponderStatus(fbPath, status, idx) {
   } catch (ex) {
     alert('❌ Network error: ' + ex.message);
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ALERTS — Firebase real-time listener
+// Flow: alert_triggered → (hidden) → alert_sent → (shown on website)
+//       → AUTO: alert_received → admin: on_the_way → arrived → resolved
+// ─────────────────────────────────────────────────────────────────────────
+
+const _receivedAlerts    = new Set(); // guards markAsReceived — never repeat
+let   _alertListenerActive = false;   // IMPORTANT: register listener only once
+
+/** 6. Convert Timestamp to Time */
+function formatTime(timestamp) {
+  return new Date(timestamp).toLocaleTimeString();
+}
+
+/** 2. AUTO SET TO alert_received — called once per new alert_sent entry. */
+function markAsReceived(alertId) {
+  _rtdb.ref('alerts/' + alertId).update({
+    responder_status:  'alert_received',
+    alert_received_at: Date.now(),
+  });
+}
+
+/** 3/4/5. On The Way / Arrived / Resolved buttons handler. */
+function updateAlertStatus(alertId, status) {
+  const updates = { responder_status: status };
+  const tsMap   = { on_the_way: 'on_the_way_at', arrived: 'arrived_at', resolved: 'resolved_at' };
+  if (tsMap[status]) updates[tsMap[status]] = Date.now();
+  _rtdb.ref('alerts/' + alertId).update(updates);
+}
+
+/** Build one alert card. */
+function buildAlertCard(alert, key) {
+  const rs      = alert.responder_status || '';
+  const rsLabel = rs === 'alert_received' ? '🔔 Received'
+                : rs === 'on_the_way'     ? '🚗 On The Way'
+                : rs === 'arrived'        ? '📍 Arrived'
+                : rs === 'alert_sent'     ? '📤 Sent' : rs;
+  const rsClass = rs === 'resolved'   ? 'rs-tag-resolved'
+                : rs === 'arrived'    ? 'rs-tag-arrived'
+                : rs === 'on_the_way' ? 'rs-tag-onway'
+                : 'rs-tag-pending';
+
+  const sentAt     = alert.alert_sent_at     ? formatTime(alert.alert_sent_at)     : '—';
+  const receivedAt = alert.alert_received_at ? formatTime(alert.alert_received_at) : '—';
+  const onWayAt    = alert.on_the_way_at     ? formatTime(alert.on_the_way_at)     : null;
+  const arrivedAt  = alert.arrived_at        ? formatTime(alert.arrived_at)        : null;
+  const resolvedAt = alert.resolved_at       ? formatTime(alert.resolved_at)       : null;
+
+  return `<div class="crash-item" id="alert-card-${key}">
+    <div class="crash-top">
+      <span>🚨</span>
+      <span class="responder-tag ${rsClass}">${rsLabel}</span>
+      <span style="font-size:.78rem;color:var(--muted);margin-left:auto">ID: ${key}</span>
+    </div>
+    <div class="crash-detail-inner" style="padding:12px 0">
+      <div class="crash-all-fields">
+        ${alert.rider_name ? `<div class="caf-row"><span class="caf-key">👤 Rider</span><span class="caf-val">${alert.rider_name}</span></div>` : ''}
+        ${alert.phone      ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${alert.phone}</span></div>` : ''}
+        ${alert.latitude   ? `<div class="caf-row"><span class="caf-key">📍 GPS</span><span class="caf-val caf-mono">${alert.latitude}, ${alert.longitude}</span></div>` : ''}
+        <div class="caf-row"><span class="caf-key">📤 Sent At</span><span class="caf-val caf-mono">${sentAt}</span></div>
+        <div class="caf-row"><span class="caf-key">🔔 Received At</span><span class="caf-val caf-mono">${receivedAt}</span></div>
+        ${onWayAt   ? `<div class="caf-row"><span class="caf-key">🚗 On The Way At</span><span class="caf-val caf-mono">${onWayAt}</span></div>`  : ''}
+        ${arrivedAt ? `<div class="caf-row"><span class="caf-key">📍 Arrived At</span><span class="caf-val caf-mono">${arrivedAt}</span></div>` : ''}
+        ${resolvedAt? `<div class="caf-row"><span class="caf-key">✅ Resolved At</span><span class="caf-val caf-mono">${resolvedAt}</span></div>` : ''}
+      </div>
+      <div class="responder-btns" style="margin-top:10px">
+        <button class="responder-btn rb-onway  ${rs==='on_the_way'?'rb-active':''}" onclick="updateAlertStatus('${key}','on_the_way')">🚗 ON THE WAY</button>
+        <button class="responder-btn rb-arrive ${rs==='arrived'   ?'rb-active':''}" onclick="updateAlertStatus('${key}','arrived')">📍 ARRIVED</button>
+        <button class="responder-btn rb-resolve ${rs==='resolved' ?'rb-active':''}" onclick="updateAlertStatus('${key}','resolved')">✅ RESOLVED</button>
+      </div>
+      ${alert.latitude ? `<button class="fly-btn" style="margin-top:10px" onclick="flyTo('crash-map',${alert.latitude},${alert.longitude})">🗺️ View on Map</button>` : ''}
+    </div>
+  </div>`;
+}
+
+/**
+ * 1. Listen for alerts — IMPORTANT: registered only once (_alertListenerActive guard).
+ * Automatically shows cards for alert_sent+ and auto-sets alert_received.
+ */
+function listenForAlerts() {
+  if (_alertListenerActive) return; // never register a second listener
+  _alertListenerActive = true;
+
+  const alertsRef = _rtdb.ref('alerts');
+  alertsRef.on('value', (snapshot) => {
+    const alerts = snapshot.val();
+    const el     = document.getElementById('alert-list');
+    if (!el) return;
+    if (!alerts) {
+      el.innerHTML = '<div class="empty">No active alerts.</div>';
+      return;
+    }
+
+    const cards = [];
+    Object.keys(alerts).forEach((key) => {
+      const alert = alerts[key];
+
+      // SHOW ONLY IF alert_sent or later (alert_triggered stays hidden)
+      if (
+        alert.responder_status === 'alert_sent'     ||
+        alert.responder_status === 'alert_received' ||
+        alert.responder_status === 'on_the_way'     ||
+        alert.responder_status === 'arrived'
+      ) {
+        // AUTO SET TO alert_received — ONCE per alert, never repeat
+        if (alert.responder_status === 'alert_sent' && !_receivedAlerts.has(key)) {
+          _receivedAlerts.add(key);
+          markAsReceived(key);
+        }
+        cards.push(buildAlertCard(alert, key));
+      }
+    });
+
+    el.innerHTML = cards.length
+      ? cards.join('')
+      : '<div class="empty">No active alerts.</div>';
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -688,19 +830,26 @@ async function pageDevices() {
     const entries = Object.entries(devices);
     document.getElementById('stat-dev-count').textContent = entries.length;
 
-    const connected = entries.filter(([, d]) => d.telemetry?.state?.status === 'Connected').length;
-    document.getElementById('stat-dev-online').textContent = connected;
+    // Real schema: status.state = "Online" | "Offline"
+    const onlineCount = entries.filter(([, d]) => {
+      const st = (d.status?.state || '').toLowerCase();
+      return st === 'online' || st === 'connected';
+    }).length;
+    document.getElementById('stat-dev-online').textContent = onlineCount;
 
     const html = entries.map(([id, d]) => {
-      const tel = d.telemetry?.data || {};
-      const loc = tel.location || {};
-      const crash = tel.crash || {};
-      const crashSev = (crash.severity || 'low').toLowerCase();
-      const crashBadgeClass = crashSev === 'high' ? 'badge-high' : crashSev === 'medium' ? 'badge-med' : 'badge-low';
-      const wifi = tel.wifi || {};
-      const state = d.telemetry?.state?.status || 'Unknown';
-      const connectedUser = d.connected || '—';
-      const isOn = state === 'Connected';
+      // ── Real schema mappings ──────────────────────────────────────────
+      const loc         = d.telematics?.location || {};          // telematics.location
+      const cfg         = d.config         || {};                // config (wifi/IP)
+      const binding     = d.binding        || {};                // binding.uid / state
+      const rawState    = (d.status?.state || '').toLowerCase(); // status.state
+      const isOn        = rawState === 'online' || rawState === 'connected';
+      const stateLabel  = isOn ? 'Online' : 'Offline';
+      const lastSeen    = d.status?.last_seen
+                            ? new Date(d.status.last_seen).toLocaleString('en-PH')
+                            : '—';
+      const boundUid    = binding.uid   || '—';
+      const boundState  = binding.state || '—';
 
       return `<div class="card" style="margin-bottom:0">
         <div class="device-hero">
@@ -708,9 +857,15 @@ async function pageDevices() {
           <div class="device-id">🔌 ${d.device_id || id}</div>
           <div><span class="device-status ${isOn ? 'status-connected' : 'status-offline'}">
             <span style="width:7px;height:7px;background:${isOn ? 'var(--green)' : 'var(--muted)'};border-radius:50%;display:inline-block"></span>
-            ${state}
+            ${stateLabel}
           </span></div>
-          <div style="margin-top:12px;font-size:.8rem;color:var(--muted)">Connected Rider: <span style="color:var(--text);font-weight:600">${connectedUser}</span></div>
+          <div style="margin-top:8px;font-size:.78rem;color:var(--muted)">
+            Last Seen: <span style="color:var(--text);font-weight:600">${lastSeen}</span>
+          </div>
+          <div style="margin-top:4px;font-size:.78rem;color:var(--muted)">
+            Binding: <span style="color:var(--text);font-weight:600">${boundState}</span>
+            ${boundUid !== '—' ? `<span style="font-size:.68rem;color:var(--muted);margin-left:6px">(UID: ${boundUid})</span>` : ''}
+          </div>
         </div>
 
         <div class="card-body">
@@ -718,8 +873,8 @@ async function pageDevices() {
           <div class="tel-grid" style="margin-bottom:16px">
             <div class="tel-item"><div class="tel-icon">📍</div><div class="tel-val">${loc.city || '—'}</div><div class="tel-label">City</div></div>
             <div class="tel-item"><div class="tel-icon">⚡</div><div class="tel-val">${loc.speed_kmph ?? '—'} <span style="font-size:.7rem;font-weight:400">km/h</span></div><div class="tel-label">Speed</div></div>
-            <div class="tel-item"><div class="tel-icon">🛰️</div><div class="tel-val">${loc.satellite || '—'}</div><div class="tel-label">GPS</div></div>
-            <div class="tel-item"><div class="tel-icon">📶</div><div class="tel-val">${wifi.ping ?? '—'} <span style="font-size:.7rem;font-weight:400">ms</span></div><div class="tel-label">Ping</div></div>
+            <div class="tel-item"><div class="tel-icon">🛰️</div><div class="tel-val">${loc.satellite || '—'}</div><div class="tel-label">GPS Sats</div></div>
+            <div class="tel-item"><div class="tel-icon">📶</div><div class="tel-val">${loc.wifi_rssi ?? '—'} <span style="font-size:.7rem;font-weight:400">dBm</span></div><div class="tel-label">WiFi RSSI</div></div>
           </div>
 
           ${loc.latitude ? `
@@ -727,29 +882,18 @@ async function pageDevices() {
             <div class="info-item"><div class="info-label">Latitude</div><div class="info-val cf-mono">${loc.latitude}</div></div>
             <div class="info-item"><div class="info-label">Longitude</div><div class="info-val cf-mono">${loc.longitude}</div></div>
             <div class="info-item"><div class="info-label">Province</div><div class="info-val">${loc.province || '—'}</div></div>
-            <div class="info-item"><div class="info-label">Last Update</div><div class="info-val">${loc.date || ''} ${loc.time || ''}</div></div>
+            <div class="info-item"><div class="info-label">Country</div><div class="info-val">${loc.country || '—'}</div></div>
+            <div class="info-item"><div class="info-label">WiFi Status</div><div class="info-val">${loc.wifi_status || '—'}</div></div>
+            <div class="info-item"><div class="info-label">Last GPS Update</div><div class="info-val">${loc.date || ''} ${loc.time || ''}</div></div>
           </div>
           <div class="card-body np" style="margin:-18px -18px 16px -18px;padding:0">
             <div id="device-map-${id}" style="height:300px;border-radius:10px;overflow:hidden"></div>
-          </div>`: ''}
+          </div>` : ''}
 
-          ${crash.date ? `
-          <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;font-weight:600">🚨 Last Crash</div>
-          <div class="crash-item">
-            <div class="crash-top"><span class="badge ${crashBadgeClass}">${crashSev}</span></div>
-            <div class="crash-fields">
-              <div><div class="cf-label">Date/Time</div><div class="cf-val">${crash.date} ${crash.time}</div></div>
-              <div><div class="cf-label">Speed</div><div class="cf-val">⚡ ${crash.speed} km/h</div></div>
-              ${crash.latitude ? `<div style="grid-column:1/-1"><div class="cf-label">GPS</div><div class="cf-val cf-mono">📍 ${crash.latitude}, ${crash.longitude}</div></div>` : ''}
-              ${crash.type ? `<div class="crash-type-tag">💥 ${crash.type.replace(/_/g, ' ').toUpperCase()}</div>` : ''}
-            </div>
-          </div>`: ''}
-
-          <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 10px;font-weight:600">📶 WiFi</div>
+          <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 10px;font-weight:600">📶 WiFi / Network</div>
           <div class="info-grid">
-            <div class="info-item"><div class="info-label">SSID</div><div class="info-val">${wifi.ssid || '—'}</div></div>
-            <div class="info-item"><div class="info-label">IP</div><div class="info-val cf-mono">${wifi.ip || '—'}</div></div>
-            <div class="info-item"><div class="info-label">Ping</div><div class="info-val">${wifi.ping ?? '—'} ms</div></div>
+            <div class="info-item"><div class="info-label">SSID</div><div class="info-val">${cfg.wifi_ssid || '—'}</div></div>
+            <div class="info-item"><div class="info-label">IP Address</div><div class="info-val cf-mono">${cfg.ip || '—'}</div></div>
           </div>
         </div>
       </div>`;
@@ -757,10 +901,10 @@ async function pageDevices() {
 
     document.getElementById('devices-body').innerHTML = html || '<div class="empty">No devices found.</div>';
 
-    // Init device maps
+    // Init device maps — using real schema: telematics.location
     setTimeout(() => {
       entries.forEach(([id, d]) => {
-        const loc = d.telemetry?.data?.location;
+        const loc = d.telematics?.location;
         if (loc?.latitude) {
           const m = getOrCreateMap(`device-map-${id}`, loc.latitude, loc.longitude, 16);
           addMarker(`device-map-${id}`, loc.latitude, loc.longitude,
@@ -815,6 +959,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (data.token) localStorage.setItem(AUTH_STORAGE_KEY, data.token);
       showAppShell();
       startRefreshInterval();
+      listenForAlerts(); // start real-time alert listener — once
       router.go('dashboard');
     } catch (ex) {
       if (errEl) {
