@@ -172,17 +172,74 @@ app.get("/api/devices", async (req, res) => {
 
 // ─── API: Update Responder Status ─────────────────────────────────────────────
 app.patch("/api/responder-status", async (req, res) => {
+
   try {
+
     const { path: fbPath, status } = req.body || {};
-    if (!fbPath || !status) return res.status(400).json({ error: "Missing path or status" });
-    const allowed = ['alert_received', 'on_the_way', 'arrived', 'resolved'];
-    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status. Use: alert_received | on_the_way | arrived | resolved" });
-    await db.ref(fbPath).update({ responder_status: status });
-    res.json({ success: true, path: fbPath, responder_status: status });
+
+    if (!fbPath || !status) {
+      return res.status(400).json({
+        error: "Missing path or status"
+      });
+    }
+
+    const allowed = [
+      'alert_received',
+      'on_the_way',
+      'arrived',
+      'resolved'
+    ];
+
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status. Use: alert_received | on_the_way | arrived | resolved"
+      });
+    }
+
+    // UPDATE OBJECT
+    const updates = {
+      responder_status: status
+    };
+
+    // AUTO TIMESTAMPS
+    if (status === "alert_received") {
+      updates.alert_received_at = Date.now();
+    }
+
+    if (status === "on_the_way") {
+      updates.on_the_way_at = Date.now();
+    }
+
+    if (status === "arrived") {
+      updates.arrived_at = Date.now();
+    }
+
+    if (status === "resolved") {
+      updates.resolved_at = Date.now();
+    }
+
+    // SAVE TO FIREBASE
+    await db.ref(fbPath).update(updates);
+
+    res.json({
+      success: true,
+      path: fbPath,
+      responder_status: status
+    });
+
   } catch (err) {
-    console.error("/api/responder-status PATCH error:", err.message);
-    res.status(500).json({ error: err.message });
+
+    console.error(
+      "/api/responder-status PATCH error:",
+      err.message
+    );
+
+    res.status(500).json({
+      error: err.message
+    });
+
   }
+
 });
 
 // ─── API: Delete User ─────────────────────────────────────────────────────────
