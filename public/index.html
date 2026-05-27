@@ -30,7 +30,8 @@
   <div id="login-screen" class="login-screen" aria-label="Sign in">
     <div class="login-card">
       <div class="login-brand">
-        <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" /></div>
+        <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" />
+        </div>
         <div>
           <div class="login-title">Ridera Admin</div>
           <div class="login-sub">Sign in to continue</div>
@@ -48,161 +49,171 @@
   </div>
 
   <div id="app-shell" class="hidden" aria-hidden="true">
-  <!-- NAV -->
-  <nav>
-    <a class="logo" href="#">
-      <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" /></div> Ridera Admin
-    </a>
-    <div class="nav-links">
-      <button class="nav-link" data-page="devices" onclick="router.go('devices')">🔌 Devices</button>
-      <button class="nav-link" data-page="users" onclick="router.go('users')">👥 Users</button>
-      <span class="nav-link-wrap">
-        <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
-        <span class="nav-notif-badge" id="nav-crash-badge"></span>
-      </span>
-    </div>
-    <div class="nav-end">
-      <div class="live-dot"></div>
-      <span class="live-label">Live · <span id="nav-ts">—</span></span>
-      <button class="refresh-btn" onclick="pages[router.current?.page]?.(router.current?.params)">⟳ Refresh</button>
-      <button type="button" class="logout-btn" id="logout-btn" onclick="signOut()">Sign out</button>
-    </div>
-  </nav>
+    <!-- NAV -->
+    <nav>
+      <a class="logo" href="#">
+        <div class="logo-icon" aria-hidden="true"><img src="logo.png" alt="" width="40" height="40" decoding="async" />
+        </div> Ridera Admin
+      </a>
+      <div class="nav-links">
+        <button class="nav-link" data-page="devices" onclick="router.go('devices')">🔌 Devices</button>
+        <button class="nav-link" data-page="users" onclick="router.go('users')">👥 Users</button>
+        <span class="nav-link-wrap">
+          <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
+          <span class="nav-notif-badge" id="nav-crash-badge"></span>
+        </span>
+      </div>
+      <div class="nav-end">
+        <div class="live-dot"></div>
+        <span class="live-label">Live · <span id="nav-ts">—</span></span>
+        <button class="refresh-btn" onclick="pages[router.current?.page]?.(router.current?.params)">⟳ Refresh</button>
+        <button type="button" class="logout-btn" id="logout-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </nav>
 
-  <!-- ══ PAGE: DASHBOARD ═══════════════════════════════════════════════════ -->
-  <div class="page active" id="page-dashboard">
-    <div class="page-header">
-      <div class="page-title">🚨 Crash Alert</div>
-      <div class="page-sub">Real-time crash intelligence · ridera-f30a8</div>
-    </div>
+    <!-- ══ PAGE: DASHBOARD ═══════════════════════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">🚨 Crash Alert</div>
+        <div class="page-sub">Real-time crash intelligence · ridera-f30a8</div>
+      </div>
 
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Total Crashes</div>
-        <div class="stat-num c-orange" id="stat-crashes">—</div>
-        <div class="stat-sub">detected entries</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Registered Users</div>
-        <div class="stat-num c-blue" id="stat-users">—</div>
-        <div class="stat-sub">in database</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Devices</div>
-        <div class="stat-num c-green" id="stat-devices">—</div>
-        <div class="stat-sub">connected</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Severity</div>
-        <div class="stat-num c-yellow" id="stat-severity">—</div>
-        <div class="stat-sub">highest level</div>
-      </div>
-    </div>
-
-    <!-- ── Active Alerts (Firebase real-time listener) ── -->
-    <div class="card">
-      <div class="card-header"><span class="card-icon">🔔</span><span class="card-title">Active Alerts — Real-time</span></div>
-      <div class="card-body">
-        <div id="alert-list">
-          <div class="loading"><div class="spinner"></div>Waiting for alerts…</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Crashes</div>
+          <div class="stat-num c-orange" id="stat-crashes">—</div>
+          <div class="stat-sub">detected entries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Registered Users</div>
+          <div class="stat-num c-blue" id="stat-users">—</div>
+          <div class="stat-sub">in database</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Devices</div>
+          <div class="stat-num c-green" id="stat-devices">—</div>
+          <div class="stat-sub">connected</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Severity</div>
+          <div class="stat-num c-yellow" id="stat-severity">—</div>
+          <div class="stat-sub">highest level</div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash Locations</span></div>
-      <div class="card-body np">
-        <div id="crash-map"></div>
+      <!-- ── Active Alerts (Firebase real-time listener) ── -->
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🔔</span><span class="card-title">Active Alerts —
+            Real-time</span></div>
+        <div class="card-body">
+          <div id="alert-list">
+            <div class="loading">
+              <div class="spinner"></div>Waiting for alerts…
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-icon">🚨</span><span class="card-title">Crash Entries</span></div>
-      <div class="card-body">
-        <div id="crash-list">
-          <div class="loading">
-            <div class="spinner"></div>Loading…
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash Locations</span></div>
+        <div class="card-body np">
+          <div id="crash-map"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🚨</span><span class="card-title">Crash Entries</span></div>
+        <div class="card-body">
+          <div id="crash-list">
+            <div class="loading">
+              <div class="spinner"></div>Loading…
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ══ PAGE: USERS ═══════════════════════════════════════════════════════ -->
-  <div class="page" id="page-users">
-    <div class="page-header">
-      <div class="page-title">👥 Registered Users</div>
-      <div class="page-sub">All users registered in the Ridera database</div>
-    </div>
+    <!-- ══ PAGE: USERS ═══════════════════════════════════════════════════════ -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div class="page-title">👥 Registered Users</div>
+        <div class="page-sub">All users registered in the Ridera database</div>
+      </div>
 
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-num c-blue" id="stat-users-count">—</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-num c-blue" id="stat-users-count">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">With Crash History</div>
+          <div class="stat-num c-red" id="stat-with-crash">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">With Motorcycle</div>
+          <div class="stat-num c-green" id="stat-with-device">—</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">With Crash History</div>
-        <div class="stat-num c-red" id="stat-with-crash">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">With Motorcycle</div>
-        <div class="stat-num c-green" id="stat-with-device">—</div>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-icon">👥</span><span class="card-title">All Users — click a row to view
-          details</span></div>
-      <div class="card-body np">
-        <div id="users-table-wrap">
-          <div class="loading">
-            <div class="spinner"></div>Loading…
+      <div class="card">
+        <div class="card-header"><span class="card-icon">👥</span><span class="card-title">All Users — click a row to
+            view
+            details</span></div>
+        <div class="card-body np">
+          <div id="users-table-wrap">
+            <div class="loading">
+              <div class="spinner"></div>Loading…
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ══ PAGE: USER DETAIL ═════════════════════════════════════════════════ -->
-  <div class="page" id="page-user-detail">
-    <button class="back-btn" onclick="router.go('users')">← Back to Users</button>
-    <div id="user-detail-body">
-      <div class="loading">
-        <div class="spinner"></div>Loading…
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ PAGE: DEVICES ═════════════════════════════════════════════════════ -->
-  <div class="page" id="page-devices">
-    <div class="page-header">
-      <div class="page-title">🔌 Device Dashboard</div>
-      <div class="page-sub">Live telemetry, GPS & crash data from Ridera devices</div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Total Devices</div>
-        <div class="stat-num c-blue" id="stat-dev-count">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Online</div>
-        <div class="stat-num c-green" id="stat-dev-online">—</div>
+    <!-- ══ PAGE: USER DETAIL ═════════════════════════════════════════════════ -->
+    <div class="page" id="page-user-detail">
+      <button class="back-btn" onclick="router.go('users')">← Back to Users</button>
+      <div id="user-detail-body">
+        <div class="loading">
+          <div class="spinner"></div>Loading…
+        </div>
       </div>
     </div>
 
-    <div id="devices-body">
-      <div class="loading">
-        <div class="spinner"></div>Loading…
+    <!-- ══ PAGE: DEVICES ═════════════════════════════════════════════════════ -->
+    <div class="page" id="page-devices">
+      <div class="page-header">
+        <div class="page-title">🔌 Device Dashboard</div>
+        <div class="page-sub">Live telemetry, GPS & crash data from Ridera devices</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Devices</div>
+          <div class="stat-num c-blue" id="stat-dev-count">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Online</div>
+          <div class="stat-num c-green" id="stat-dev-online">—</div>
+        </div>
+      </div>
+
+      <div id="devices-body">
+        <div class="loading">
+          <div class="spinner"></div>Loading…
+        </div>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Firebase client SDK (compat) for real-time alerts listener -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZ0bp_eKfhhT2RhFqdlE54sJqmy2sS2y0&v=weekly"></script>
+  <audio id="alertSound">
+
+    <source src="/sounds/alert.mp3" type="audio/mpeg">
+
+  </audio>
   <script src="app.js"></script>
 </body>
 

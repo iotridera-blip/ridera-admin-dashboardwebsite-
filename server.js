@@ -64,21 +64,17 @@ function findCrashes(data) {
     if (!user || typeof user !== "object") continue;
     const history = user.crash_history || {};
 
-    // Collect only allowed crash types for this user
-    const userCrashes = [];
+    // Collect ALL allowed crash entries for this user
     for (const [cid, crash] of Object.entries(history)) {
       if (!crash || typeof crash !== "object") continue;
       if (isAllowedCrashType(crash.type)) {
-        userCrashes.push({ path: `/Ridera/users/${uid}/crash_history/${cid}`, key: cid, data: crash });
+        results.push({ path: `/Ridera/users/${uid}/crash_history/${cid}`, key: cid, data: crash });
       }
     }
-
-    if (userCrashes.length === 0) continue;
-
-    // Sort by createdAt descending — keep only the newest
-    userCrashes.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
-    results.push(userCrashes[0]);
   }
+
+  // Sort all crashes globally by createdAt descending (newest first)
+  results.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
   return results;
 }
 

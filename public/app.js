@@ -1,13 +1,13 @@
 // ── Firebase Client SDK — Real-time Alerts Listener ─────────────────────────
 const _fbConfig = {
-  apiKey:            "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
-  authDomain:        "ridera-dg7.firebaseapp.com",
-  databaseURL:       "https://ridera-dg7-default-rtdb.firebaseio.com",
-  projectId:         "ridera-dg7",
-  storageBucket:     "ridera-dg7.firebasestorage.app",
+  apiKey: "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
+  authDomain: "ridera-dg7.firebaseapp.com",
+  databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com",
+  projectId: "ridera-dg7",
+  storageBucket: "ridera-dg7.firebasestorage.app",
   messagingSenderId: "139828355676",
-  appId:             "1:139828355676:web:fb8de1c261db813130bc99",
-  measurementId:     "G-RX9N66J29B",
+  appId: "1:139828355676:web:fb8de1c261db813130bc99",
+  measurementId: "G-RX9N66J29B",
 };
 if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
 const _rtdb = firebase.database();
@@ -175,7 +175,29 @@ function showCrashSnackbar(msg = 'A new riding crash event has been recorded.', 
   // Auto-dismiss
   _snackbarTimer = setTimeout(() => dismissSnackbar(), duration);
 }
+// ── Audio unlock: browsers require a user gesture before audio can play.
+// The first click anywhere on the page silently plays + pauses the element,
+// which registers it as "user-activated" so later auto-plays work.
+let _audioUnlocked = false;
+function _unlockAudio() {
+  if (_audioUnlocked) return;
+  const el = document.getElementById('alertSound');
+  if (!el) return;
+  el.volume = 0;
+  el.play().then(() => { el.pause(); el.currentTime = 0; el.volume = 1.0; _audioUnlocked = true; }).catch(() => {});
+  document.removeEventListener('click', _unlockAudio);
+  document.removeEventListener('touchstart', _unlockAudio);
+}
+document.addEventListener('click', _unlockAudio);
+document.addEventListener('touchstart', _unlockAudio);
 
+function playCrashAlertSound() {
+  const el = document.getElementById('alertSound');
+  if (!el) return;
+  el.currentTime = 0;
+  el.volume = 1.0;
+  el.play().catch(err => console.log('Audio blocked:', err));
+}
 function dismissSnackbar() {
   const bar = document.getElementById('crash-snackbar');
   if (!bar) return;
@@ -234,7 +256,7 @@ function scheduleNextRefresh() {
   const delay = Math.floor(Math.random() * 10000) + 50000; // 50 000 – 60 000 ms
   setTimeout(() => {
     if (router.current?.page === 'dashboard') pageDashboard();
-    if (router.current?.page === 'devices')   pageDevices();
+    if (router.current?.page === 'devices') pageDevices();
     scheduleNextRefresh(); // re-schedule after each run
   }, delay);
 }
@@ -243,6 +265,20 @@ function startRefreshInterval() {
   if (refreshIntervalStarted) return;
   refreshIntervalStarted = true;
   scheduleNextRefresh();
+}
+
+// ── Real-time crash watcher — fires instantly when any crash_history changes ──
+let _crashListenerActive = false;
+function listenForCrashes() {
+  if (_crashListenerActive) return;
+  _crashListenerActive = true;
+
+  // Watch the entire users node; any crash_history write triggers this
+  _rtdb.ref('Ridera/users').on('value', () => {
+    // Re-fetch the full dashboard data via the server API so
+    // all enrichment (responder_status, etc.) is consistent
+    if (router.current?.page === 'dashboard') pageDashboard();
+  });
 }
 
 async function tryResumeSession() {
@@ -259,7 +295,8 @@ async function tryResumeSession() {
       const lastPage = localStorage.getItem(LAST_PAGE_KEY) || 'dashboard';
       router.go(lastPage);
       startRefreshInterval();
-      listenForAlerts(); // start real-time alert listener — once
+      listenForAlerts();  // real-time alerts listener — once
+      listenForCrashes(); // real-time crash entries listener — once
       return;
     }
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -273,6 +310,7 @@ async function tryResumeSession() {
 // PAGE: DASHBOARD
 // ─────────────────────────────────────────────────────────────────────────
 async function pageDashboard() {
+
   loading('crash-list');
   try {
     const r = await apiFetch('/api/overview');
@@ -292,11 +330,16 @@ async function pageDashboard() {
       const newCount = crashList.length - _lastKnownCrashCount;
       // Grab the newest entry for context
       const newest = crashList[0]?.data || {};
-      const rider  = newest.rider_name ? `Rider: ${newest.rider_name}` : '';
-      const loc    = newest.latitude   ? `📍 ${newest.latitude}, ${newest.longitude}` : '';
-      const parts  = [`${newCount} new crash event${newCount > 1 ? 's' : ''} detected!`, rider, loc].filter(Boolean);
+      const rider = newest.rider_name ? `Rider: ${newest.rider_name}` : '';
+      const loc = newest.latitude ? `📍 ${newest.latitude}, ${newest.longitude}` : '';
+      const parts = [`${newCount} new crash event${newCount > 1 ? 's' : ''} detected!`, rider, loc].filter(Boolean);
       const topSev = (newest.severity || 'low').toLowerCase();
       showCrashSnackbar(parts.join(' · '), topSev);
+
+
+      // PLAY ALERT SOUND
+      playCrashAlertSound();
+
       _lastKnownCrashCount = crashList.length;
     }
 
@@ -344,7 +387,7 @@ async function pageDashboard() {
 
       // Photo avatar
       const photoHtml = (d.photo && d.photo.startsWith('http'))
-        ? `<img src="${d.photo}" class="crash-rider-photo">`  : '';
+        ? `<img src="${d.photo}" class="crash-rider-photo">` : '';
 
       return `<div class="crash-item" id="crash-item-${i}">
         <!-- ── Clickable header ── -->
@@ -365,21 +408,21 @@ async function pageDashboard() {
             <div class="crash-rider-row">
               ${photoHtml}
               <div class="crash-all-fields">
-                ${d.name       ? `<div class="caf-row"><span class="caf-key">👤 Name</span><span class="caf-val">${d.name}</span></div>` : ''}
-                ${d.phone      ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${d.phone}</span></div>` : ''}
-                ${d.sex        ? `<div class="caf-row"><span class="caf-key">⚧ Sex</span><span class="caf-val">${d.sex}</span></div>` : ''}
-                ${d.date       ? `<div class="caf-row"><span class="caf-key">📅 Date</span><span class="caf-val">${d.date}</span></div>` : ''}
-                ${d.time       ? `<div class="caf-row"><span class="caf-key">🕐 Time</span><span class="caf-val">${d.time}</span></div>` : ''}
+                ${d.name ? `<div class="caf-row"><span class="caf-key">👤 Name</span><span class="caf-val">${d.name}</span></div>` : ''}
+                ${d.phone ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${d.phone}</span></div>` : ''}
+                ${d.sex ? `<div class="caf-row"><span class="caf-key">⚧ Sex</span><span class="caf-val">${d.sex}</span></div>` : ''}
+                ${d.date ? `<div class="caf-row"><span class="caf-key">📅 Date</span><span class="caf-val">${d.date}</span></div>` : ''}
+                ${d.time ? `<div class="caf-row"><span class="caf-key">🕐 Time</span><span class="caf-val">${d.time}</span></div>` : ''}
                 ${d.speed !== undefined ? `<div class="caf-row"><span class="caf-key">⚡ Speed</span><span class="caf-val">${d.speed} km/h</span></div>` : ''}
                 ${d.latitude !== undefined ? `<div class="caf-row"><span class="caf-key">📍 GPS</span><span class="caf-val caf-mono">${d.latitude}, ${d.longitude}</span></div>` : ''}
                 ${d.vehicle_model ? `<div class="caf-row"><span class="caf-key">🏍️ Model</span><span class="caf-val">${d.vehicle_model}</span></div>` : ''}
                 ${d.vehicle_plate ? `<div class="caf-row"><span class="caf-key">🏷️ Plate</span><span class="caf-val">${d.vehicle_plate}</span></div>` : ''}
                 ${d.vehicle_color ? `<div class="caf-row"><span class="caf-key">🎨 Color</span><span class="caf-val">${d.vehicle_color}</span></div>` : ''}
-                ${d.vehicle_type  ? `<div class="caf-row"><span class="caf-key">🛵 Type</span><span class="caf-val">${d.vehicle_type}</span></div>` : ''}
-                ${d.type          ? `<div class="caf-row"><span class="caf-key">💥 Crash Type</span><span class="caf-val">${d.type.replace(/_/g,' ').toUpperCase()}</span></div>` : ''}
-                ${d.severity      ? `<div class="caf-row"><span class="caf-key">⚠️ Severity</span><span class="caf-val">${d.severity}</span></div>` : ''}
-                ${d.crashId       ? `<div class="caf-row"><span class="caf-key">🆔 Crash ID</span><span class="caf-val caf-mono">${d.crashId}</span></div>` : ''}
-                ${d.createdAt     ? `<div class="caf-row"><span class="caf-key">🕓 Created At</span><span class="caf-val caf-mono">${new Date(d.createdAt).toLocaleString('en-PH')}</span></div>` : ''}
+                ${d.vehicle_type ? `<div class="caf-row"><span class="caf-key">🛵 Type</span><span class="caf-val">${d.vehicle_type}</span></div>` : ''}
+                ${d.type ? `<div class="caf-row"><span class="caf-key">💥 Crash Type</span><span class="caf-val">${d.type.replace(/_/g, ' ').toUpperCase()}</span></div>` : ''}
+                ${d.severity ? `<div class="caf-row"><span class="caf-key">⚠️ Severity</span><span class="caf-val">${d.severity}</span></div>` : ''}
+                ${d.crashId ? `<div class="caf-row"><span class="caf-key">🆔 Crash ID</span><span class="caf-val caf-mono">${d.crashId}</span></div>` : ''}
+                ${d.createdAt ? `<div class="caf-row"><span class="caf-key">🕓 Created At</span><span class="caf-val caf-mono">${new Date(d.createdAt).toLocaleString('en-PH')}</span></div>` : ''}
                 ${d.alert_received_at ? `<div class="caf-row"><span class="caf-key">🔔 Alert Received</span><span class="caf-val caf-mono">${new Date(d.alert_received_at).toLocaleString('en-PH')}</span></div>` : ''}
                 <div class="caf-row"><span class="caf-key">📂 DB Path</span><span class="caf-val caf-mono" style="font-size:.68rem;word-break:break-all">${c.path}</span></div>
               </div>
@@ -405,8 +448,8 @@ async function pageDashboard() {
               </div>
               <div class="responder-btns">
                 <button class="responder-btn rb-onway  ${rs === 'on_the_way' ? 'rb-active' : ''}" id="rb-onway-${i}"  onclick="updateResponderStatus('${c.path}','on_the_way',${i})">🚗 ON THE WAY</button>
-                <button class="responder-btn rb-arrive ${rs === 'arrived'    ? 'rb-active' : ''}" id="rb-arrive-${i}" onclick="updateResponderStatus('${c.path}','arrived',${i})">📍 ARRIVE</button>
-                <button class="responder-btn rb-resolve ${rs === 'resolved'  ? 'rb-active' : ''}" id="rb-resolve-${i}" onclick="updateResponderStatus('${c.path}','resolved',${i})">✅ RESOLVE</button>
+                <button class="responder-btn rb-arrive ${rs === 'arrived' ? 'rb-active' : ''}" id="rb-arrive-${i}" onclick="updateResponderStatus('${c.path}','arrived',${i})">📍 ARRIVE</button>
+                <button class="responder-btn rb-resolve ${rs === 'resolved' ? 'rb-active' : ''}" id="rb-resolve-${i}" onclick="updateResponderStatus('${c.path}','resolved',${i})">✅ RESOLVE</button>
               </div>
             </div>
 
@@ -454,7 +497,7 @@ async function updateResponderStatus(fbPath, status, idx) {
     });
     // Toggle active button
     const keyMap = { on_the_way: 'onway', arrived: 'arrive', resolved: 'resolve' };
-    ['onway','arrive','resolve'].forEach(k => document.getElementById(`rb-${k}-${idx}`)?.classList.remove('rb-active'));
+    ['onway', 'arrive', 'resolve'].forEach(k => document.getElementById(`rb-${k}-${idx}`)?.classList.remove('rb-active'));
     document.getElementById(`rb-${keyMap[status]}-${idx}`)?.classList.add('rb-active');
     // Toast
     const toast = document.createElement('div');
@@ -473,8 +516,8 @@ async function updateResponderStatus(fbPath, status, idx) {
 //       → AUTO: alert_received → admin: on_the_way → arrived → resolved
 // ─────────────────────────────────────────────────────────────────────────
 
-const _receivedAlerts    = new Set(); // guards markAsReceived — never repeat
-let   _alertListenerActive = false;   // IMPORTANT: register listener only once
+const _receivedAlerts = new Set(); // guards markAsReceived — never repeat
+let _alertListenerActive = false;   // IMPORTANT: register listener only once
 
 /** 6. Convert Timestamp to Time */
 function formatTime(timestamp) {
@@ -484,7 +527,7 @@ function formatTime(timestamp) {
 /** 2. AUTO SET TO alert_received — called once per new alert_sent entry. */
 function markAsReceived(alertId) {
   _rtdb.ref('alerts/' + alertId).update({
-    responder_status:  'alert_received',
+    responder_status: 'alert_received',
     alert_received_at: Date.now(),
   });
 }
@@ -492,28 +535,28 @@ function markAsReceived(alertId) {
 /** 3/4/5. On The Way / Arrived / Resolved buttons handler. */
 function updateAlertStatus(alertId, status) {
   const updates = { responder_status: status };
-  const tsMap   = { on_the_way: 'on_the_way_at', arrived: 'arrived_at', resolved: 'resolved_at' };
+  const tsMap = { on_the_way: 'on_the_way_at', arrived: 'arrived_at', resolved: 'resolved_at' };
   if (tsMap[status]) updates[tsMap[status]] = Date.now();
   _rtdb.ref('alerts/' + alertId).update(updates);
 }
 
 /** Build one alert card. */
 function buildAlertCard(alert, key) {
-  const rs      = alert.responder_status || '';
+  const rs = alert.responder_status || '';
   const rsLabel = rs === 'alert_received' ? '🔔 Received'
-                : rs === 'on_the_way'     ? '🚗 On The Way'
-                : rs === 'arrived'        ? '📍 Arrived'
-                : rs === 'alert_sent'     ? '📤 Sent' : rs;
-  const rsClass = rs === 'resolved'   ? 'rs-tag-resolved'
-                : rs === 'arrived'    ? 'rs-tag-arrived'
-                : rs === 'on_the_way' ? 'rs-tag-onway'
-                : 'rs-tag-pending';
+    : rs === 'on_the_way' ? '🚗 On The Way'
+      : rs === 'arrived' ? '📍 Arrived'
+        : rs === 'alert_sent' ? '📤 Sent' : rs;
+  const rsClass = rs === 'resolved' ? 'rs-tag-resolved'
+    : rs === 'arrived' ? 'rs-tag-arrived'
+      : rs === 'on_the_way' ? 'rs-tag-onway'
+        : 'rs-tag-pending';
 
-  const sentAt     = alert.alert_sent_at     ? formatTime(alert.alert_sent_at)     : '—';
+  const sentAt = alert.alert_sent_at ? formatTime(alert.alert_sent_at) : '—';
   const receivedAt = alert.alert_received_at ? formatTime(alert.alert_received_at) : '—';
-  const onWayAt    = alert.on_the_way_at     ? formatTime(alert.on_the_way_at)     : null;
-  const arrivedAt  = alert.arrived_at        ? formatTime(alert.arrived_at)        : null;
-  const resolvedAt = alert.resolved_at       ? formatTime(alert.resolved_at)       : null;
+  const onWayAt = alert.on_the_way_at ? formatTime(alert.on_the_way_at) : null;
+  const arrivedAt = alert.arrived_at ? formatTime(alert.arrived_at) : null;
+  const resolvedAt = alert.resolved_at ? formatTime(alert.resolved_at) : null;
 
   return `<div class="crash-item" id="alert-card-${key}">
     <div class="crash-top">
@@ -524,18 +567,18 @@ function buildAlertCard(alert, key) {
     <div class="crash-detail-inner" style="padding:12px 0">
       <div class="crash-all-fields">
         ${alert.rider_name ? `<div class="caf-row"><span class="caf-key">👤 Rider</span><span class="caf-val">${alert.rider_name}</span></div>` : ''}
-        ${alert.phone      ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${alert.phone}</span></div>` : ''}
-        ${alert.latitude   ? `<div class="caf-row"><span class="caf-key">📍 GPS</span><span class="caf-val caf-mono">${alert.latitude}, ${alert.longitude}</span></div>` : ''}
+        ${alert.phone ? `<div class="caf-row"><span class="caf-key">📞 Phone</span><span class="caf-val">${alert.phone}</span></div>` : ''}
+        ${alert.latitude ? `<div class="caf-row"><span class="caf-key">📍 GPS</span><span class="caf-val caf-mono">${alert.latitude}, ${alert.longitude}</span></div>` : ''}
         <div class="caf-row"><span class="caf-key">📤 Sent At</span><span class="caf-val caf-mono">${sentAt}</span></div>
         <div class="caf-row"><span class="caf-key">🔔 Received At</span><span class="caf-val caf-mono">${receivedAt}</span></div>
-        ${onWayAt   ? `<div class="caf-row"><span class="caf-key">🚗 On The Way At</span><span class="caf-val caf-mono">${onWayAt}</span></div>`  : ''}
+        ${onWayAt ? `<div class="caf-row"><span class="caf-key">🚗 On The Way At</span><span class="caf-val caf-mono">${onWayAt}</span></div>` : ''}
         ${arrivedAt ? `<div class="caf-row"><span class="caf-key">📍 Arrived At</span><span class="caf-val caf-mono">${arrivedAt}</span></div>` : ''}
-        ${resolvedAt? `<div class="caf-row"><span class="caf-key">✅ Resolved At</span><span class="caf-val caf-mono">${resolvedAt}</span></div>` : ''}
+        ${resolvedAt ? `<div class="caf-row"><span class="caf-key">✅ Resolved At</span><span class="caf-val caf-mono">${resolvedAt}</span></div>` : ''}
       </div>
       <div class="responder-btns" style="margin-top:10px">
-        <button class="responder-btn rb-onway  ${rs==='on_the_way'?'rb-active':''}" onclick="updateAlertStatus('${key}','on_the_way')">🚗 ON THE WAY</button>
-        <button class="responder-btn rb-arrive ${rs==='arrived'   ?'rb-active':''}" onclick="updateAlertStatus('${key}','arrived')">📍 ARRIVED</button>
-        <button class="responder-btn rb-resolve ${rs==='resolved' ?'rb-active':''}" onclick="updateAlertStatus('${key}','resolved')">✅ RESOLVED</button>
+        <button class="responder-btn rb-onway  ${rs === 'on_the_way' ? 'rb-active' : ''}" onclick="updateAlertStatus('${key}','on_the_way')">🚗 ON THE WAY</button>
+        <button class="responder-btn rb-arrive ${rs === 'arrived' ? 'rb-active' : ''}" onclick="updateAlertStatus('${key}','arrived')">📍 ARRIVED</button>
+        <button class="responder-btn rb-resolve ${rs === 'resolved' ? 'rb-active' : ''}" onclick="updateAlertStatus('${key}','resolved')">✅ RESOLVED</button>
       </div>
       ${alert.latitude ? `<button class="fly-btn" style="margin-top:10px" onclick="flyTo('crash-map',${alert.latitude},${alert.longitude})">🗺️ View on Map</button>` : ''}
     </div>
@@ -553,7 +596,7 @@ function listenForAlerts() {
   const alertsRef = _rtdb.ref('alerts');
   alertsRef.on('value', (snapshot) => {
     const alerts = snapshot.val();
-    const el     = document.getElementById('alert-list');
+    const el = document.getElementById('alert-list');
     if (!el) return;
     if (!alerts) {
       el.innerHTML = '<div class="empty">No active alerts.</div>';
@@ -566,15 +609,18 @@ function listenForAlerts() {
 
       // SHOW ONLY IF alert_sent or later (alert_triggered stays hidden)
       if (
-        alert.responder_status === 'alert_sent'     ||
+        alert.responder_status === 'alert_sent' ||
         alert.responder_status === 'alert_received' ||
-        alert.responder_status === 'on_the_way'     ||
+        alert.responder_status === 'on_the_way' ||
         alert.responder_status === 'arrived'
       ) {
         // AUTO SET TO alert_received — ONCE per alert, never repeat
         if (alert.responder_status === 'alert_sent' && !_receivedAlerts.has(key)) {
           _receivedAlerts.add(key);
           markAsReceived(key);
+          // Play alert sound for each new incoming alert
+          playCrashAlertSound();
+          showCrashSnackbar(`🚨 New crash alert received! ID: ${key}`, 'high', 8000);
         }
         cards.push(buildAlertCard(alert, key));
       }
@@ -731,19 +777,19 @@ async function pageUserDetail({ id }) {
         <div class="card-header"><span class="card-icon">📞</span><span class="card-title">Emergency Contacts (${contacts.length})</span></div>
         <div class="card-body">
           ${contacts.map(c => {
-            const cCol = avatarColor(c.contact_name || '?');
-            const cInit = initials(c.contact_name || '?');
-            const cAvatar = (c.contact_photo && c.contact_photo.startsWith('http'))
-              ? `<img src="${c.contact_photo}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-              : `<div style="width:38px;height:38px;border-radius:50%;background:${cCol}22;color:${cCol};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0">${cInit}</div>`;
-            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      const cCol = avatarColor(c.contact_name || '?');
+      const cInit = initials(c.contact_name || '?');
+      const cAvatar = (c.contact_photo && c.contact_photo.startsWith('http'))
+        ? `<img src="${c.contact_photo}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+        : `<div style="width:38px;height:38px;border-radius:50%;background:${cCol}22;color:${cCol};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0">${cInit}</div>`;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
               ${cAvatar}
               <div>
                 <div style="font-weight:600">${c.contact_name || '—'}</div>
                 <div style="font-size:.75rem;color:var(--muted)">${c.contact_relationship || ''} · 📞 ${c.contact_phone || '—'}</div>
               </div>
             </div>`;
-          }).join('')}
+    }).join('')}
         </div>
       </div>` : '';
 
@@ -839,17 +885,17 @@ async function pageDevices() {
 
     const html = entries.map(([id, d]) => {
       // ── Real schema mappings ──────────────────────────────────────────
-      const loc         = d.telematics?.location || {};          // telematics.location
-      const cfg         = d.config         || {};                // config (wifi/IP)
-      const binding     = d.binding        || {};                // binding.uid / state
-      const rawState    = (d.status?.state || '').toLowerCase(); // status.state
-      const isOn        = rawState === 'online' || rawState === 'connected';
-      const stateLabel  = isOn ? 'Online' : 'Offline';
-      const lastSeen    = d.status?.last_seen
-                            ? new Date(d.status.last_seen).toLocaleString('en-PH')
-                            : '—';
-      const boundUid    = binding.uid   || '—';
-      const boundState  = binding.state || '—';
+      const loc = d.telematics?.location || {};          // telematics.location
+      const cfg = d.config || {};                // config (wifi/IP)
+      const binding = d.binding || {};                // binding.uid / state
+      const rawState = (d.status?.state || '').toLowerCase(); // status.state
+      const isOn = rawState === 'online' || rawState === 'connected';
+      const stateLabel = isOn ? 'Online' : 'Offline';
+      const lastSeen = d.status?.last_seen
+        ? new Date(d.status.last_seen).toLocaleString('en-PH')
+        : '—';
+      const boundUid = binding.uid || '—';
+      const boundState = binding.state || '—';
 
       return `<div class="card" style="margin-bottom:0">
         <div class="device-hero">
