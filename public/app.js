@@ -971,11 +971,143 @@ async function pageDevices() {
 // Page registry
 // ─────────────────────────────────────────────────────────────────────────
 const pages = {
+  responders: pageResponders,
   dashboard: pageDashboard,
   users: pageUsers,
   'user-detail': pageUserDetail,
   devices: pageDevices,
 };
+// ─────────────────────────────────────────────────────────────────────────
+// Emergency Responders
+// ─────────────────────────────────────────────────────────────────────────
+
+async function pageResponders() {
+
+  const wrap = document.getElementById(
+    "responders-table-wrap"
+  );
+
+  try {
+
+    const snap = await _rtdb
+      .ref("authorized_emergency_responder")
+      .once("value");
+
+    const data = snap.val() || {};
+
+    const entries = Object.entries(data);
+
+    document.getElementById(
+      "stat-responders"
+    ).textContent = entries.length;
+
+    if (entries.length) {
+
+      document.getElementById(
+        "coverage-area"
+      ).textContent =
+        entries[0][1].address || "—";
+    }
+
+    wrap.innerHTML = `
+      <table class="responder-table">
+
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Address</th>
+        <th>Status</th>
+      </tr>
+      </thead>
+
+      <tbody>
+
+      ${entries.map(([id, r]) => `
+
+      <tr>
+
+        <td>${r.name}</td>
+
+        <td>+${r.phone}</td>
+
+        <td>${r.address}</td>
+
+        <td>
+          <span class="responder-status">
+          Active
+          </span>
+        </td>
+
+      </tr>
+
+      `).join("")}
+
+      </tbody>
+
+      </table>
+    `;
+
+  } catch (err) {
+
+    wrap.innerHTML =
+      `<div class="error-box">${err}</div>`;
+  }
+}
+
+function openResponderModal() {
+
+  document
+    .getElementById("responder-modal")
+    .classList.remove("hidden");
+}
+
+function closeResponderModal() {
+
+  document
+    .getElementById("responder-modal")
+    .classList.add("hidden");
+}
+
+async function saveResponder() {
+
+  const name =
+    document.getElementById("responder-name").value;
+
+  const phone =
+    document.getElementById("responder-phone").value;
+
+  const address =
+    document.getElementById("responder-address").value;
+
+  const latitude =
+    parseFloat(
+      document.getElementById("responder-lat").value
+    );
+
+  const longitude =
+    parseFloat(
+      document.getElementById("responder-lng").value
+    );
+
+  const ref =
+    _rtdb.ref("authorized_emergency_responder");
+
+  const id =
+    "aer" + Date.now();
+
+  await ref.child(id).set({
+    name,
+    phone,
+    address,
+    latitude,
+    longitude
+  });
+
+  closeResponderModal();
+
+  pageResponders();
+}
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {

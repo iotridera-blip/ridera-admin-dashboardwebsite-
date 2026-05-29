@@ -60,6 +60,8 @@
         <button class="nav-link" data-page="users" onclick="router.go('users')">👥 Users</button>
         <span class="nav-link-wrap">
           <button class="nav-link active" data-page="dashboard" onclick="router.go('dashboard')">🚨 Crash Alert</button>
+          <button class="nav-link" data-page="responders" onclick="router.go('responders')">🚑 Emergency
+            Responders</button>
           <span class="nav-notif-badge" id="nav-crash-badge"></span>
         </span>
       </div>
@@ -71,6 +73,63 @@
       </div>
     </nav>
 
+    <!-- ══ PAGE: EMERGENCY RESPONDERS ═══════════════════ -->
+
+    <div class="page" id="page-responders">
+
+      <div class="page-header">
+        <div class="page-title">🚑 Emergency Responders</div>
+        <div class="page-sub">
+          Manage authorized emergency response units
+        </div>
+      </div>
+
+      <div class="stats-row">
+
+        <div class="stat-card">
+          <div class="stat-label">Total Responders</div>
+          <div class="stat-num c-yellow" id="stat-responders">
+            0
+          </div>
+          <div class="stat-sub">authorized responders</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Coverage Area</div>
+          <div class="stat-num c-blue" id="coverage-area">
+            —
+          </div>
+          <div class="stat-sub">primary coverage</div>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="card-header">
+          <span class="card-icon">🚑</span>
+          <span class="card-title">
+            Authorized Emergency Responders
+          </span>
+
+          <button class="add-responder-btn" onclick="openResponderModal()">
+            + Add Responder
+          </button>
+
+        </div>
+
+        <div class="card-body np">
+          <div id="responders-table-wrap">
+            <div class="loading">
+              <div class="spinner"></div>
+              Loading...
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
     <!-- ══ PAGE: DASHBOARD ═══════════════════════════════════════════════════ -->
     <div class="page active" id="page-dashboard">
       <div class="page-header">
@@ -203,6 +262,40 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="responder-modal" class="responder-modal hidden">
+
+    <div class="responder-modal-content">
+
+      <div class="modal-title">
+        Add Authorized Emergency Responder
+      </div>
+
+      <input id="responder-name" class="responder-input" placeholder="Responder Name">
+
+      <input id="responder-phone" class="responder-input" placeholder="Phone Number">
+
+      <input id="responder-address" class="responder-input" placeholder="Address">
+
+      <input id="responder-lat" class="responder-input" placeholder="Latitude">
+
+      <input id="responder-lng" class="responder-input" placeholder="Longitude">
+
+      <div class="modal-actions">
+
+        <button class="modal-cancel" onclick="closeResponderModal()">
+          Cancel
+        </button>
+
+        <button class="modal-save" onclick="saveResponder()">
+          Save Responder
+        </button>
+
+      </div>
+
+    </div>
+
   </div>
 
   <!-- Firebase client SDK (compat) for real-time alerts listener -->

@@ -1613,3 +1613,94 @@ nav {
 .nav-notif-badge.badge-visible {
   display: block;
 }
+
+/* RESPONDERS */
+
+.add-responder-btn {
+  margin-left: auto;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.responder-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responder-table th {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+.responder-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+
+.responder-status {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+/* MODAL */
+
+.responder-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+}
+
+.responder-modal-content {
+  width: 500px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.responder-input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: white;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-cancel {
+  padding: 10px 14px;
+}
+
+.modal-save {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+}
