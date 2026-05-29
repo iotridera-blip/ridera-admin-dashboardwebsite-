@@ -184,7 +184,7 @@ function _unlockAudio() {
   const el = document.getElementById('alertSound');
   if (!el) return;
   el.volume = 0;
-  el.play().then(() => { el.pause(); el.currentTime = 0; el.volume = 1.0; _audioUnlocked = true; }).catch(() => {});
+  el.play().then(() => { el.pause(); el.currentTime = 0; el.volume = 1.0; _audioUnlocked = true; }).catch(() => { });
   document.removeEventListener('click', _unlockAudio);
   document.removeEventListener('touchstart', _unlockAudio);
 }
@@ -877,9 +877,12 @@ async function pageDevices() {
     document.getElementById('stat-dev-count').textContent = entries.length;
 
     // Real schema: status.state = "Online" | "Offline"
+    const DEVICE_TIMEOUT = 30000;
+
     const onlineCount = entries.filter(([, d]) => {
-      const st = (d.status?.state || '').toLowerCase();
-      return st === 'online' || st === 'connected';
+      const lastSeenTs = d.status?.last_seen || 0;
+
+      return (lastSeenTs > 0 && (Date.now() - lastSeenTs) < DEVICE_TIMEOUT);
     }).length;
     document.getElementById('stat-dev-online').textContent = onlineCount;
 
@@ -888,8 +891,8 @@ async function pageDevices() {
       const loc = d.telematics?.location || {};          // telematics.location
       const cfg = d.config || {};                // config (wifi/IP)
       const binding = d.binding || {};                // binding.uid / state
-      const rawState = (d.status?.state || '').toLowerCase(); // status.state
-      const isOn = rawState === 'online' || rawState === 'connected';
+      const lastSeenTs = d.status?.last_seen || 0;
+      const isOn = lastSeenTs > 0 && (Date.now() - lastSeenTs) < DEVICE_TIMEOUT;
       const stateLabel = isOn ? 'Online' : 'Offline';
       const lastSeen = d.status?.last_seen
         ? new Date(d.status.last_seen).toLocaleString('en-PH')
