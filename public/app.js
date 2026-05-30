@@ -356,6 +356,14 @@ async function pageDashboard() {
     const pts = [];
     crashList.forEach((c, i) => {
       const d = c.data;
+
+      if (d.responder_status === "alert_sent") {
+        _rtdb.ref(c.path).update({
+          responder_status:"alert_received",
+          alert_received_at: Date.now()
+        });
+      }
+      
       const lat = d?.latitude;
       const lng = d?.longitude;
       if (lat == null || lng == null || Number.isNaN(+lat) || Number.isNaN(+lng)) return;
