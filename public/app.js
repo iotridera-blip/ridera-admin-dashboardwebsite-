@@ -107,8 +107,17 @@ const router = {
     if (nl) nl.classList.add('active');
     this.current = { page, params };
     // Persistent page state — save top-level pages only (not user-detail which needs params)
-    if (['dashboard', 'devices', 'users'].includes(page)) {
-      localStorage.setItem(LAST_PAGE_KEY, page);
+    if (
+      ['dashboard',
+        'devices',
+        'users',
+        'responders'
+      ].includes(page)
+    ) {
+      localStorage.setItem(
+        LAST_PAGE_KEY,
+        page
+      );
     }
     pages[page]?.(params);
     // Fix map size after display
@@ -359,11 +368,11 @@ async function pageDashboard() {
 
       if (d.responder_status === "alert_sent") {
         _rtdb.ref(c.path).update({
-          responder_status:"alert_received",
+          responder_status: "alert_received",
           alert_received_at: Date.now()
         });
       }
-      
+
       const lat = d?.latitude;
       const lng = d?.longitude;
       if (lat == null || lng == null || Number.isNaN(+lat) || Number.isNaN(+lng)) return;
@@ -696,6 +705,17 @@ async function pageUsers() {
       <table class="user-table">
         <thead><tr>
           <th>Name</th><th>Phone</th><th>Address</th><th>Joined</th><th>Tags</th><th>Status</th><th>Actions</th>
+          <td>
+
+  <button class="responder-action btn-edit">
+    ✏ Edit
+  </button>
+
+  <button class="responder-action btn-delete">
+    🗑 Delete
+  </button>
+
+</td>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -1009,112 +1029,185 @@ async function pageResponders() {
       "stat-responders"
     ).textContent = entries.length;
 
-    if (entries.length) {
-
-      document.getElementById(
-        "coverage-area"
-      ).textContent =
-        entries[0][1].address || "—";
-    }
+    document.getElementById(
+      "coverage-area"
+    ).textContent =
+      entries.length
+        ? entries[0][1].address || "—"
+        : "—";
 
     wrap.innerHTML = `
+
       <table class="responder-table">
 
-      <thead>
-      <tr>
-        <th>Name</th>
-        <th>Phone</th>
-        <th>Address</th>
-        <th>Status</th>
-      </tr>
-      </thead>
+        <thead>
 
-      <tbody>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
 
-      ${entries.map(([id, r]) => `
+        </thead>
 
-      <tr>
+        <tbody>
 
-        <td>${r.name}</td>
+        ${entries.map(([id, r]) => `
 
-        <td>+${r.phone}</td>
+          <tr class="responder-row">
 
-        <td>${r.address}</td>
+            <td>
 
-        <td>
-          <span class="responder-status">
-          Active
-          </span>
-        </td>
+              <div class="responder-name">
 
-      </tr>
+                <div class="responder-avatar">
+                  🚑
+                </div>
 
-      `).join("")}
+                <div>
 
-      </tbody>
+                  <div style="font-weight:700">
+                    ${r.name || "-"}
+                  </div>
+
+                  <div style="
+                    font-size:.75rem;
+                    color:var(--muted);
+                  ">
+                    ${r.phone || "-"}
+                  </div>
+
+                </div>
+
+              </div>
+
+            </td>
+
+            <td>
+              +${r.phone || "-"}
+            </td>
+
+            <td>
+              ${r.address || "-"}
+            </td>
+
+           <td>
+
+  <span class="responder-status">
+    🟢 Active
+  </span>
+
+</td>
+
+<td>
+
+  <button
+    class="responder-action btn-edit"
+    onclick="editResponder('${id}')">
+
+    ✏ Edit
+
+  </button>
+
+  <button
+    class="responder-action btn-delete"
+    onclick="deleteResponder('${id}')">
+
+    🗑 Delete
+
+  </button>
+
+</td>
+
+</tr>
+
+        `).join("")}
+
+        </tbody>
 
       </table>
     `;
 
   } catch (err) {
 
-    wrap.innerHTML =
-      `<div class="error-box">${err}</div>`;
+    wrap.innerHTML = `
+      <div class="error-box">
+        ${err}
+      </div>
+    `;
   }
 }
+async function deleteResponder(id) {
 
+  const ok = confirm(
+    "Delete this responder?"
+  );
+
+  if (!ok) return;
+
+  await _rtdb
+    .ref("authorized_emergency_responder")
+    .child(id)
+    .remove();
+
+  pageResponders();
+}
+
+async function editResponder(id) {
+
+  const snap = await _rtdb
+    .ref("authorized_emergency_responder")
+    .child(id)
+    .once("value");
+
+  const r = snap.val();
+
+  if (!r) return;
+
+  document.getElementById(
+    "responder-name"
+  ).value = r.name || "";
+
+  document.getElementById(
+    "responder-phone"
+  ).value = r.phone || "";
+
+  document.getElementById(
+    "responder-address"
+  ).value = r.address || "";
+
+  document.getElementById(
+    "responder-lat"
+  ).value = r.latitude || "";
+
+  document.getElementById(
+    "responder-lng"
+  ).value = r.longitude || "";
+
+  window.currentResponderId = id;
+
+  openResponderModal();
+}
 function openResponderModal() {
 
-  document
-    .getElementById("responder-modal")
-    .classList.remove("hidden");
+  const modal =
+    document.getElementById("responder-modal");
+
+  if (modal) {
+    modal.classList.remove("hidden");
+  }
 }
 
 function closeResponderModal() {
 
-  document
-    .getElementById("responder-modal")
-    .classList.add("hidden");
-}
+  const modal =
+    document.getElementById("responder-modal");
 
-async function saveResponder() {
-
-  const name =
-    document.getElementById("responder-name").value;
-
-  const phone =
-    document.getElementById("responder-phone").value;
-
-  const address =
-    document.getElementById("responder-address").value;
-
-  const latitude =
-    parseFloat(
-      document.getElementById("responder-lat").value
-    );
-
-  const longitude =
-    parseFloat(
-      document.getElementById("responder-lng").value
-    );
-
-  const ref =
-    _rtdb.ref("authorized_emergency_responder");
-
-  const id =
-    "aer" + Date.now();
-
-  await ref.child(id).set({
-    name,
-    phone,
-    address,
-    latitude,
-    longitude
-  });
-
-  closeResponderModal();
-
-  pageResponders();
+  if (modal) {
+    modal.classList.add("hidden");
+  }
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────
