@@ -563,7 +563,8 @@ function buildAlertCard(alert, key) {
   const rsLabel = rs === 'alert_received' ? '🔔 Received'
     : rs === 'on_the_way' ? '🚗 On The Way'
       : rs === 'arrived' ? '📍 Arrived'
-        : rs === 'alert_sent' ? '📤 Sent' : rs;
+        : rs === 'resolved' ? '✅ Resolved'
+          : rs === 'alert_sent' ? '📤 Sent' : rs;
   const rsClass = rs === 'resolved' ? 'rs-tag-resolved'
     : rs === 'arrived' ? 'rs-tag-arrived'
       : rs === 'on_the_way' ? 'rs-tag-onway'
@@ -705,17 +706,6 @@ async function pageUsers() {
       <table class="user-table">
         <thead><tr>
           <th>Name</th><th>Phone</th><th>Address</th><th>Joined</th><th>Tags</th><th>Status</th><th>Actions</th>
-          <td>
-
-  <button class="responder-action btn-edit">
-    ✏ Edit
-  </button>
-
-  <button class="responder-action btn-delete">
-    🗑 Delete
-  </button>
-
-</td>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -1015,6 +1005,8 @@ async function pageResponders() {
     "responders-table-wrap"
   );
 
+  loading('responders-table-wrap');
+
   try {
 
     const snap = await _rtdb
@@ -1210,6 +1202,44 @@ function closeResponderModal() {
   }
 }
 
+async function saveResponder() {
+  const name    = document.getElementById('responder-name')?.value.trim()    || '';
+  const phone   = document.getElementById('responder-phone')?.value.trim()   || '';
+  const address = document.getElementById('responder-address')?.value.trim() || '';
+  const lat     = document.getElementById('responder-lat')?.value.trim()     || '';
+  const lng     = document.getElementById('responder-lng')?.value.trim()     || '';
+
+  if (!name || !phone) {
+    alert('⚠️ Name and Phone are required.');
+    return;
+  }
+
+  const payload = { name, phone, address };
+  if (lat) payload.latitude  = parseFloat(lat);
+  if (lng) payload.longitude = parseFloat(lng);
+
+  try {
+    const id = window.currentResponderId || null;
+    if (id) {
+      // Edit existing
+      await _rtdb.ref('authorized_emergency_responder').child(id).update(payload);
+    } else {
+      // Add new
+      await _rtdb.ref('authorized_emergency_responder').push(payload);
+    }
+
+    // Clear form fields & editing state
+    ['responder-name', 'responder-phone', 'responder-address', 'responder-lat', 'responder-lng']
+      .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
+    window.currentResponderId = null;
+
+    closeResponderModal();
+    pageResponders(); // Refresh table
+  } catch (err) {
+    alert('❌ Failed to save responder: ' + err.message);
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   // Wire up snackbar dismiss button
@@ -1241,7 +1271,8 @@ window.addEventListener('DOMContentLoaded', () => {
       if (data.token) localStorage.setItem(AUTH_STORAGE_KEY, data.token);
       showAppShell();
       startRefreshInterval();
-      listenForAlerts(); // start real-time alert listener — once
+      listenForAlerts();  // start real-time alert listener — once
+      listenForCrashes(); // start real-time crash listener — once
       router.go('dashboard');
     } catch (ex) {
       if (errEl) {
