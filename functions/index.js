@@ -1,7 +1,7 @@
 const functions = require("firebase-functions");
-const admin     = require("firebase-admin");
-const express   = require("express");
-const cors      = require("cors");
+const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
 
 // ─── Firebase Init ────────────────────────────────────────────────────────────
 admin.initializeApp({
@@ -76,15 +76,15 @@ function findCrashes(data) {
 // ─── GET /overview ────────────────────────────────────────────────────────────
 apiRouter.get("/overview", async (req, res) => {
   try {
-    const snap    = await db.ref("/Ridera").once("value");
-    const d       = snap.val() || {};
+    const snap = await db.ref("/Ridera").once("value");
+    const d = snap.val() || {};
     const crashes = findCrashes(d);
     res.json({
       crashes,
-      totalUsers:   Object.keys(d.users   || {}).length,
+      totalUsers: Object.keys(d.users || {}).length,
       // Exclude 'config' — it is a settings node, not a real device
       totalDevices: Object.keys(d.devices || {}).filter(k => k !== 'config').length,
-      timestamp:    new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,6 +98,35 @@ apiRouter.get("/users", async (req, res) => {
     res.json({ users: snap.val() || {} });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+// ─── DELETE /users/:id ────────────────────────────────────────────────────────
+apiRouter.delete("/users/:id", async (req, res) => {
+  try {
+
+    const uid = req.params.id;
+
+    const snap = await db.ref(`/Ridera/users/${uid}`).once("value");
+
+    if (!snap.exists()) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    await db.ref(`/Ridera/users/${uid}`).remove();
+
+    res.json({
+      success: true,
+      deletedUser: uid
+    });
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
   }
 });
 
@@ -131,19 +160,19 @@ apiRouter.get("/devices", async (req, res) => {
 // ─── GET /debug ───────────────────────────────────────────────────────────────
 apiRouter.get("/debug", async (req, res) => {
   try {
-    const snap      = await db.ref("/Ridera").once("value");
-    const d         = snap.val() || {};
-    const userKeys  = Object.keys(d.users || {});
-    const firstUid  = userKeys[0];
+    const snap = await db.ref("/Ridera").once("value");
+    const d = snap.val() || {};
+    const userKeys = Object.keys(d.users || {});
+    const firstUid = userKeys[0];
     const firstUser = firstUid ? d.users[firstUid] : null;
     const crashKeys = firstUser ? Object.keys(firstUser.crash_history || {}) : [];
     res.json({
-      topLevelKeys:    Object.keys(d),
-      totalUsers:      userKeys.length,
-      firstUserId:     firstUid,
-      firstUserKeys:   firstUser ? Object.keys(firstUser) : [],
+      topLevelKeys: Object.keys(d),
+      totalUsers: userKeys.length,
+      firstUserId: firstUid,
+      firstUserKeys: firstUser ? Object.keys(firstUser) : [],
       crashHistoryKeys: crashKeys,
-      firstCrash:      crashKeys[0] ? firstUser.crash_history[crashKeys[0]] : null,
+      firstCrash: crashKeys[0] ? firstUser.crash_history[crashKeys[0]] : null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
