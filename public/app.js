@@ -1200,14 +1200,16 @@ function closeResponderModal() {
   if (modal) {
     modal.classList.add("hidden");
   }
+
+  window.currentResponderId = null;
 }
 
 async function saveResponder() {
-  const name    = document.getElementById('responder-name')?.value.trim()    || '';
-  const phone   = document.getElementById('responder-phone')?.value.trim()   || '';
+  const name = document.getElementById('responder-name')?.value.trim() || '';
+  const phone = document.getElementById('responder-phone')?.value.trim() || '';
   const address = document.getElementById('responder-address')?.value.trim() || '';
-  const lat     = document.getElementById('responder-lat')?.value.trim()     || '';
-  const lng     = document.getElementById('responder-lng')?.value.trim()     || '';
+  const lat = document.getElementById('responder-lat')?.value.trim() || '';
+  const lng = document.getElementById('responder-lng')?.value.trim() || '';
 
   if (!name || !phone) {
     alert('⚠️ Name and Phone are required.');
@@ -1215,7 +1217,7 @@ async function saveResponder() {
   }
 
   const payload = { name, phone, address };
-  if (lat) payload.latitude  = parseFloat(lat);
+  if (lat) payload.latitude = parseFloat(lat);
   if (lng) payload.longitude = parseFloat(lng);
 
   try {
