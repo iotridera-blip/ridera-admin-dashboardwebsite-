@@ -1010,7 +1010,7 @@ async function pageResponders() {
   try {
 
     const snap = await _rtdb
-      .ref("authorized_emergency_responder")
+      .ref("Ridera/authorized_emergency_responder")
       .once("value");
 
     const data = snap.val() || {};
@@ -1140,7 +1140,7 @@ async function deleteResponder(id) {
   if (!ok) return;
 
   await _rtdb
-    .ref("authorized_emergency_responder")
+    .ref("Ridera/authorized_emergency_responder")
     .child(id)
     .remove();
 
@@ -1150,7 +1150,7 @@ async function deleteResponder(id) {
 async function editResponder(id) {
 
   const snap = await _rtdb
-    .ref("authorized_emergency_responder")
+    .ref("Ridera/authorized_emergency_responder")
     .child(id)
     .once("value");
 
@@ -1224,10 +1224,10 @@ async function saveResponder() {
     const id = window.currentResponderId || null;
     if (id) {
       // Edit existing
-      await _rtdb.ref('authorized_emergency_responder').child(id).update(payload);
+      await _rtdb.ref('Ridera/authorized_emergency_responder').child(id).update(payload);
     } else {
       // Add new
-      await _rtdb.ref('authorized_emergency_responder').push(payload);
+      await _rtdb.ref('Ridera/authorized_emergency_responder').push(payload);
     }
 
     // Clear form fields & editing state
