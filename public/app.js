@@ -1216,7 +1216,18 @@ async function saveResponder() {
     return;
   }
 
-  const payload = { name, phone, address };
+  const snap = await _rtdb
+    .ref("Ridera/authorized_emergency_responder")
+    .once("value");
+
+  const count = snap.numChildren();
+
+  const payload = {
+    responder_id: `AER-${String(count + 1).padStart(3, "0")}`,
+    name,
+    phone,
+    address
+  };
   if (lat) payload.latitude = parseFloat(lat);
   if (lng) payload.longitude = parseFloat(lng);
 
