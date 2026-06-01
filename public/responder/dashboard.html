@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Ridera Responder Dashboard</title>
+    <meta name="description"
+        content="🚑 Ridera Responder Dashboard — crash monitoring, registered users, and device telemetry." />
+    <link rel="stylesheet" href="responder.css" />
+</head>
+
+<body>
+
+    <!-- ── CRASH NOTIFICATION BAR (top-right panel) ────────────────────── -->
+    <div id="crash-snackbar" class="crash-snackbar" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="snackbar-inner">
+            <div class="snackbar-icon">🚨</div>
+            <div class="snackbar-content">
+                <div class="snackbar-title">New Crash Detected!</div>
+                <div class="snackbar-msg" id="snackbar-msg">A new riding crash event has been recorded.</div>
+                <div class="snackbar-time" id="snackbar-time"></div>
+            </div>
+            <button class="snackbar-close" id="snackbar-close" aria-label="Dismiss notification">✕</button>
+        </div>
+        <div class="snackbar-progress" id="snackbar-progress"></div>
+    </div>
+
+    <!-- ══ LOGIN SCREEN ═══════════════════════════════════════════════════ -->
+    <div id="login-screen" class="login-screen" aria-label="Sign in">
+
+        <!-- Animated background orbs -->
+        <div class="login-bg-orb login-bg-orb-1"></div>
+        <div class="login-bg-orb login-bg-orb-2"></div>
+        <div class="login-bg-orb login-bg-orb-3"></div>
+
+        <div class="login-card">
+
+            <!-- Brand header -->
+            <div class="login-brand">
+                <div class="login-logo-icon" aria-hidden="true">
+                    <img src="../logo.png" alt="" width="48" height="48" />
+                </div>
+                <div>
+                    <div class="login-title">Ridera Responder</div>
+                    <div class="login-sub">Emergency Response Portal</div>
+                </div>
+            </div>
+
+            <!-- Welcome -->
+            <div class="login-welcome">
+                <h1>Welcome back <span class="login-wave">👋</span></h1>
+                <p>Sign in to access the crash monitoring dashboard.</p>
+            </div>
+
+            <!-- Form -->
+            <form id="login-form" class="login-form" autocomplete="off">
+
+                <label class="login-label" for="login-username">Username</label>
+                <div class="login-input-wrap">
+                    <span class="login-input-icon">👤</span>
+                    <input id="login-username" class="login-input" type="text" placeholder="Enter your username"
+                        autocomplete="username" required />
+                </div>
+
+                <label class="login-label" for="login-password">Password</label>
+                <div class="login-input-wrap">
+                    <span class="login-input-icon">🔒</span>
+                    <input id="login-password" class="login-input" type="password" placeholder="••••••••••"
+                        autocomplete="current-password" required />
+                    <button type="button" class="login-pw-toggle" id="login-pw-toggle" title="Show/hide password"
+                        aria-label="Toggle password visibility">👁️</button>
+                </div>
+
+                <p id="login-error" class="login-error hidden" role="alert"></p>
+
+                <button type="submit" class="login-submit" id="login-submit">
+                    <span class="login-btn-text">Sign In</span>
+                    <div class="login-spinner"></div>
+                </button>
+
+            </form>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <div class="login-footer-dot"></div>
+                <span>System Online</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ══ APP SHELL (hidden until login) ═════════════════════════════════ -->
+    <div id="app-shell" class="hidden" aria-hidden="true">
+        <!-- NAV -->
+        <nav>
+            <a class="logo" href="#">
+                <div class="logo-icon" aria-hidden="true"><img src="../logo.png" alt="" width="40" height="40"
+                        decoding="async" />
+                </div> 🚑 Ridera Responder
+            </a>
+            <span class="nav-link-wrap">
+                <button class="nav-link active" data-page="dashboard">🚨 Crash Alert</button>
+                <span class="nav-notif-badge" id="nav-crash-badge"></span>
+            </span>
+            <div class="nav-end">
+                <div class="live-dot"></div>
+                <span class="live-label">Live · <span id="nav-ts">—</span></span>
+                <button class="refresh-btn" onclick="loadFullDashboard()">⟳ Refresh</button>
+                <button type="button" class="logout-btn" id="logout-btn" onclick="signOut()">Sign out</button>
+            </div>
+        </nav>
+
+        <!-- ══ PAGE: DASHBOARD — 100% copy of admin Crash Alert ═══════════ -->
+        <div class="page active" id="page-dashboard">
+            <div class="page-header">
+                <div class="page-title">🚨 Crash Alert</div>
+                <div class="page-sub">Real-time crash intelligence</div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Total Crashes</div>
+                    <div class="stat-num c-orange" id="stat-crashes">—</div>
+                    <div class="stat-sub">detected entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Registered Users</div>
+                    <div class="stat-num c-blue" id="stat-users">—</div>
+                    <div class="stat-sub">in database</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Devices</div>
+                    <div class="stat-num c-green" id="stat-devices">—</div>
+                    <div class="stat-sub">connected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Severity</div>
+                    <div class="stat-num c-yellow" id="stat-severity">—</div>
+                    <div class="stat-sub">highest level</div>
+                </div>
+            </div>
+
+            <!-- ── Active Alerts (Firebase real-time listener) ── -->
+            <div class="card">
+                <div class="card-header"><span class="card-icon">🔔</span><span class="card-title">Active Alerts —
+                        Real-time</span></div>
+                <div class="card-body">
+                    <div id="alert-list">
+                        <div class="loading">
+                            <div class="spinner"></div>Waiting for alerts…
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash
+                        Locations</span></div>
+                <div class="card-body np">
+                    <div id="crash-map"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><span class="card-icon">🚨</span><span class="card-title">Crash Entries</span>
+                </div>
+                <div class="card-body">
+                    <div id="crash-list">
+                        <div class="loading">
+                            <div class="spinner"></div>Loading…
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══ SCRIPTS — loaded BEFORE responder.js so firebase is available ══ -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZ0bp_eKfhhT2RhFqdlE54sJqmy2sS2y0&v=weekly"></script>
+    <audio id="alertSound">
+        <source src="/sounds/alert.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Initialize Firebase BEFORE responder.js -->
+    <script>
+        const _fbConfig = {
+            apiKey: "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
+            authDomain: "ridera-dg7.firebaseapp.com",
+            databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com",
+            projectId: "ridera-dg7",
+            storageBucket: "ridera-dg7.firebasestorage.app",
+            messagingSenderId: "139828355676",
+            appId: "1:139828355676:web:fb8de1c261db813130bc99",
+            measurementId: "G-RX9N66J29B",
+        };
+        if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+    </script>
+
+    <script src="responder.js"></script>
+</body>
+
+</html>

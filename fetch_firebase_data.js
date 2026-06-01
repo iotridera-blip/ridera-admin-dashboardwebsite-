@@ -11,12 +11,12 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8")
   );
 } else {
-  serviceAccount = require(path.join(__dirname, "..", "ridera-f30a8-firebase-adminsdk-fbsvc-aff8ccd5da.json"));
+  serviceAccount = require(path.join(__dirname, "..", "ridera-dg7-firebase-adminsdk-fbsvc-aff8ccd5da.json"));
 }
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://ridera-f30a8-default-rtdb.firebaseio.com/",
+  databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com/",
 });
 
 const database = admin.database();
@@ -78,9 +78,10 @@ function printStructure(data, currentPath = "", depth = 0) {
 (async () => {
   console.log("=".repeat(70));
   console.log("🔥  FIREBASE REALTIME DATABASE — CRASH FINDER");
-  console.log("    Project : ridera-f30a8");
-  console.log("    DB URL  : https://ridera-f30a8-default-rtdb.firebaseio.com/");
+  console.log("    Project : ridera-dg7");
+  console.log("    DB URL  : https://ridera-dg7-default-rtdb.firebaseio.com/");
   console.log("=".repeat(70));
+
 
   console.log("\n📡  Connecting to Firebase Realtime Database...\n");
 

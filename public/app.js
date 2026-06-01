@@ -1210,13 +1210,15 @@ async function saveResponder() {
   const address = document.getElementById('responder-address')?.value.trim() || '';
   const lat = document.getElementById('responder-lat')?.value.trim() || '';
   const lng = document.getElementById('responder-lng')?.value.trim() || '';
+  const username = document.getElementById('responder-username')?.value.trim() || '';
+  const password = document.getElementById('responder-password')?.value.trim() || '';
 
-  if (!name || !phone) {
+  if (!name || !phone || !username || !password) {
     alert('⚠️ Name and Phone are required.');
     return;
   }
 
-  const payload = { name, phone, address };
+  const payload = { name, phone, address, username, password, status: "offline" };
   if (lat) payload.latitude = parseFloat(lat);
   if (lng) payload.longitude = parseFloat(lng);
 
@@ -1231,7 +1233,15 @@ async function saveResponder() {
     }
 
     // Clear form fields & editing state
-    ['responder-name', 'responder-phone', 'responder-address', 'responder-lat', 'responder-lng']
+    [
+      'responder-name',
+      'responder-phone',
+      'responder-address',
+      'responder-lat',
+      'responder-lng',
+      'responder-username',
+      'responder-password'
+    ]
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
     window.currentResponderId = null;
 

@@ -23,7 +23,7 @@ npm install
 ### 2. Add Firebase credentials
 Place your Firebase Admin SDK service account JSON at:
 ```
-c:/Users/Johnides/Desktop/Downloads/ridera-f30a8-firebase-adminsdk-fbsvc-58bf88cb51.json
+cd C:\Users\USER\.vscode\ridera-admin-dashboard-master\ridera-admin-dashboard-master
 ```
 Or set the `FIREBASE_CREDENTIALS` environment variable with the JSON string.
 

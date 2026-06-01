@@ -6,7 +6,7 @@ const cors = require("cors");
 // ─── Firebase Init ────────────────────────────────────────────────────────────
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
-  databaseURL: "https://ridera-f30a8-default-rtdb.firebaseio.com/",
+  databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com/",
 });
 
 const db = admin.database();
