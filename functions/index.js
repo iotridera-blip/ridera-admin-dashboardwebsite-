@@ -59,17 +59,15 @@ function findCrashes(data) {
   for (const [uid, user] of Object.entries(users)) {
     if (!user || typeof user !== "object") continue;
     const history = user.crash_history || {};
-    const userCrashes = [];
     for (const [cid, crash] of Object.entries(history)) {
       if (!crash || typeof crash !== "object") continue;
       if (isAllowedCrashType(crash.type)) {
-        userCrashes.push({ path: `/Ridera/users/${uid}/crash_history/${cid}`, key: cid, data: crash });
+        results.push({ path: `/Ridera/users/${uid}/crash_history/${cid}`, key: cid, data: crash });
       }
     }
-    if (userCrashes.length === 0) continue;
-    userCrashes.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
-    results.push(userCrashes[0]);
   }
+  // Sort all crashes globally by createdAt descending (newest first)
+  results.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
   return results;
 }
 
@@ -152,6 +150,27 @@ apiRouter.get("/devices", async (req, res) => {
       Object.entries(raw).filter(([k]) => k !== 'config')
     );
     res.json({ devices });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── PATCH /responder-status ──────────────────────────────────────────────────
+apiRouter.patch("/responder-status", async (req, res) => {
+  try {
+    const { path: fbPath, status } = req.body || {};
+    if (!fbPath || !status) {
+      return res.status(400).json({ error: "Missing path or status" });
+    }
+    const allowed = ['alert_received', 'on_the_way', 'arrived', 'resolved'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Use: alert_received | on_the_way | arrived | resolved" });
+    }
+    const updates = { responder_status: status };
+    const tsMap = { alert_received: 'alert_received_at', on_the_way: 'on_the_way_at', arrived: 'arrived_at', resolved: 'resolved_at' };
+    if (tsMap[status]) updates[tsMap[status]] = Date.now();
+    await db.ref(fbPath).update(updates);
+    res.json({ success: true, path: fbPath, responder_status: status });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

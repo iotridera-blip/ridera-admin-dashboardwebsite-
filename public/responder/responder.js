@@ -209,7 +209,7 @@ async function responderLogin(e) {
     try {
 
         const snap = await _rtdb
-            .ref("authorized_emergency_responder")
+            .ref("Ridera/authorized_emergency_responder")
             .once("value");
 
         let matchedResponder = null;

@@ -386,7 +386,7 @@
 
   <script>
     // Redirect if already logged in
-    if (localStorage.getItem('ridera_auth') === 'true') {
+    if (localStorage.getItem('ridera_admin_token')) {
       window.location.href = '/';
     }
 
@@ -440,8 +440,7 @@
         const { res, data } = result;
 
         if (res.ok && data.success) {
-          localStorage.setItem('ridera_auth', 'true');
-          localStorage.setItem('ridera_token', data.token);
+          localStorage.setItem('ridera_admin_token', data.token);
           window.location.href = '/';
         } else {
           errEl.textContent = '❌ ' + (data.error || 'Invalid credentials');
