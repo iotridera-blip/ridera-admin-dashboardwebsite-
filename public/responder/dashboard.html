@@ -142,19 +142,6 @@
                 </div>
             </div>
 
-            <!-- ── Active Alerts (Firebase real-time listener) ── -->
-            <div class="card">
-                <div class="card-header"><span class="card-icon">🔔</span><span class="card-title">Active Alerts —
-                        Real-time</span></div>
-                <div class="card-body">
-                    <div id="alert-list">
-                        <div class="loading">
-                            <div class="spinner"></div>Waiting for alerts…
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card">
                 <div class="card-header"><span class="card-icon">🗺️</span><span class="card-title">Crash
                         Locations</span></div>
@@ -163,45 +150,71 @@
                 </div>
             </div>
 
+            <!-- Active Alerts -->
             <div class="card">
-                <div class="card-header"><span class="card-icon">🚨</span><span class="card-title">Crash Entries</span>
+
+                <div class="card-header">
+                    <span class="card-icon">🚨</span>
+                    <span class="card-title">Active Alerts</span>
                 </div>
+
                 <div class="card-body">
                     <div id="crash-list">
                         <div class="loading">
-                            <div class="spinner"></div>Loading…
+                            <div class="spinner"></div>
+                            Loading...
                         </div>
                     </div>
                 </div>
+
             </div>
+
+            <!-- Crash History -->
+            <div class="card">
+
+                <div class="card-header">
+                    <span class="card-icon">📜</span>
+                    <span class="card-title">Crash History</span>
+                </div>
+
+                <div class="card-body">
+                    <div id="history-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading history...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
 
-    </div>
+        <!-- ══ SCRIPTS — loaded BEFORE responder.js so firebase is available ══ -->
+        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+        <script
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAR3vS8iedLfq5bUj9spC0qUfsvaeIXPWI&v=weekly"></script>
+        <audio id="alertSound">
+            <source src="/sounds/alert.mp3" type="audio/mpeg">
+        </audio>
 
-    <!-- ══ SCRIPTS — loaded BEFORE responder.js so firebase is available ══ -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAR3vS8iedLfq5bUj9spC0qUfsvaeIXPWI&v=weekly"></script>
-    <audio id="alertSound">
-        <source src="/sounds/alert.mp3" type="audio/mpeg">
-    </audio>
+        <!-- Initialize Firebase BEFORE responder.js -->
+        <script>
+            const _fbConfig = {
+                apiKey: "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
+                authDomain: "ridera-dg7.firebaseapp.com",
+                databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com",
+                projectId: "ridera-dg7",
+                storageBucket: "ridera-dg7.firebasestorage.app",
+                messagingSenderId: "139828355676",
+                appId: "1:139828355676:web:fb8de1c261db813130bc99",
+                measurementId: "G-RX9N66J29B",
+            };
+            if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+        </script>
 
-    <!-- Initialize Firebase BEFORE responder.js -->
-    <script>
-        const _fbConfig = {
-            apiKey: "AIzaSyDCPjdmPjhjeCWXJnsX_b8HEBlwRrEGZM8",
-            authDomain: "ridera-dg7.firebaseapp.com",
-            databaseURL: "https://ridera-dg7-default-rtdb.firebaseio.com",
-            projectId: "ridera-dg7",
-            storageBucket: "ridera-dg7.firebasestorage.app",
-            messagingSenderId: "139828355676",
-            appId: "1:139828355676:web:fb8de1c261db813130bc99",
-            measurementId: "G-RX9N66J29B",
-        };
-        if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
-    </script>
-
-    <script src="responder.js"></script>
+        <script src="responder.js"></script>
 </body>
 
 </html>

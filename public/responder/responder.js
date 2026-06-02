@@ -558,14 +558,96 @@ async function loadCrashEntries() {
         }
 
         // Sort newest first
+        // Sort newest first
         crashes.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0));
 
+        const activeCrashes = [];
+        const historyCrashes = [];
+
+        crashes.forEach(cr => {
+
+            const status =
+                cr.data.responder_status || "pending";
+
+            if (status === "resolved") {
+
+                historyCrashes.push(cr);
+
+            } else {
+
+                activeCrashes.push(cr);
+
+            }
+
+        });
+
+        // CLEAR OLD MARKERS
+        if (window.crashMarkers) {
+            window.crashMarkers.forEach(m => m.setMap(null));
+        }
+
+        window.crashMarkers = [];
+
+        const bounds = new google.maps.LatLngBounds();
+
+        activeCrashes.forEach(c => {
+
+            const d = c.data;
+
+            if (!d.latitude || !d.longitude) return;
+
+            const marker = new google.maps.Marker({
+                position: {
+                    lat: Number(d.latitude),
+                    lng: Number(d.longitude)
+                },
+                map: responderMap,
+                title: c.userName
+            });
+
+            const info = new google.maps.InfoWindow({
+                content: `
+            <div style="color:#111">
+                <b>${c.userName}</b><br>
+                ${d.type || "Crash"}<br>
+                ${d.latitude}, ${d.longitude}
+            </div>
+        `
+            });
+
+            marker.addListener("click", () => {
+                info.open({
+                    map: responderMap,
+                    anchor: marker
+                });
+            });
+
+            window.crashMarkers.push(marker);
+
+            bounds.extend({
+                lat: Number(d.latitude),
+                lng: Number(d.longitude)
+            });
+
+        });
+
+        if (window.crashMarkers.length) {
+            responderMap.fitBounds(bounds);
+        }
         if (crashes.length === 0) {
-            crashList.innerHTML = '<div class="empty">No crash entries found.</div>';
+            if (window.crashMarkers) {
+                window.crashMarkers.forEach(
+                    m => m.setMap(null)
+                );
+            }
+
+            crashList.innerHTML =
+                '<div class="empty">No crash entries found.</div>';
+
             return;
         }
 
-        crashList.innerHTML = crashes.map((c, idx) => {
+        crashList.innerHTML = activeCrashes.map((c, idx) => {
             const d = c.data;
             const sev = (d.severity || 'low').toLowerCase();
             const bc = sev === 'high' ? 'badge-high' : sev === 'medium' ? 'badge-med' : 'badge-low';
@@ -619,9 +701,36 @@ async function loadCrashEntries() {
                 </div>
             </div>`;
         }).join('');
+        const historyList =
+            document.getElementById(
+                "history-list"
+            );
+
+        if (historyList) {
+
+            historyList.innerHTML =
+                historyCrashes.map(c => `
+            <div class="crash-item">
+                <div class="crash-top">
+                    <span class="badge badge-low">
+                        RESOLVED
+                    </span>
+
+                    <span style="font-weight:600">
+                        ${c.userName}
+                    </span>
+
+                    <span class="crash-path">
+                        ${c.key}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+
+        }
 
         const statCrashes = document.getElementById("stat-crashes");
-        if (statCrashes) statCrashes.textContent = crashes.length;
+        if (statCrashes) statCrashes.textContent = activeCrashes.length;
 
     } catch (err) {
         console.error('loadCrashEntries error:', err);
