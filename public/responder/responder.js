@@ -190,9 +190,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (responder) {
         showDashboard();
+
     }
 });
 
+let responderMap;
+
+function initMap() {
+
+    console.log("INIT MAP CALLED");
+
+    const mapEl =
+        document.getElementById(
+            "crash-map"
+        );
+
+    console.log("MAP ELEMENT:", mapEl);
+
+    if (!mapEl) return;
+
+    console.log("GOOGLE:", google);
+
+    responderMap =
+        new google.maps.Map(
+            mapEl,
+            {
+                center: {
+                    lat: 14.2990,
+                    lng: 120.9580
+                },
+                zoom: 12
+            }
+        );
+
+    console.log("MAP CREATED");
+
+}
 async function responderLogin(e) {
 
     e.preventDefault();
@@ -268,6 +301,7 @@ function showDashboard() {
     }
 
     // Start real-time listeners
+    initMap();
     listenForAlerts();
     loadCrashEntries();
 }
