@@ -46,7 +46,50 @@ app.use(requireApiAuth);
 
 // Serve static files from the public/ folder
 app.use(express.static(path.join(__dirname, "public")));
+app.get("/responder", (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      "public",
+      "responder",
+      "dashboard.html"
+    )
+  );
+});
+// Responder API
+app.patch("/api/responder-status", async (req, res) => {
 
+  try {
+
+    const { path: fbPath, status } =
+      req.body || {};
+
+    if (!fbPath || !status) {
+      return res.status(400).json({
+        error: "Missing path or status"
+      });
+    }
+
+    await admin
+      .database()
+      .ref(fbPath)
+      .update({
+        responder_status: status
+      });
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+});
 // ─── Crash Finder — latest Riding Crash / Riding Crash (Upright) per user ────
 // Matches both human-readable ("Riding Crash (Upright)") and underscore ("riding_crash_upright")
 function isAllowedCrashType(type) {

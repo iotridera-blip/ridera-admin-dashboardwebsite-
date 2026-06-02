@@ -5,6 +5,7 @@
   "main": "fetch_firebase_data.js",
   "scripts": {
     "start": "node server.js",
+    "start:responder": "node responder-server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "serve": "firebase emulators:start --only hosting,functions",
     "deploy": "firebase deploy --only \"hosting,functions:api\""
